@@ -1,0 +1,52 @@
+﻿@page
+@model PetrolTracker.Pages.IndexModel
+<link href="/css/style.css" rel="stylesheet" type="text/css" />
+
+<div class="grid-container">
+	<div id="map"></div>
+	<div class="glass-div scroll_div">
+		@{
+			foreach (DbManager.GasStation el in Model.GasStations!)
+			{
+				<div class="glass-div">
+					<div class="card-header">@el.Name.ToUpper()</div>
+					<div class="card-body">
+						<div class="minimal-box-column">
+							<p>@el.Location</p>
+						</div>
+							<div class="minimal-box-row">
+							@{
+								foreach(var petrol in el.Petrols)
+								{
+									<div>
+										<p>@petrol.Name</p>
+										<p>@petrol.Price</p>
+									</div>
+								}
+							}
+						</div>
+					</div>
+				</div>
+			}
+		}
+	</div>
+</div>
+
+<script src="https://api-maps.yandex.ru/2.1/?apikey=107a0c84-45d3-407b-a236-9daa3692445c&load=package.full&lang=ru-RU" type="text/javascript"></script>
+
+<script>
+		// Ожидаем загрузки API и создаем карту
+		ymaps.ready(function() {
+			console.log('API загружен, создаем карту...');
+
+			var map = new ymaps.Map("map", {
+				center: [55.751574, 37.573856],
+				zoom: 10
+			});
+
+			console.log('Карта успешно создана!');
+		});
+
+		// Проверка, что ошибки нет
+		console.log('Скрипт выполнен, ожидаем загрузку API...');
+	</script>

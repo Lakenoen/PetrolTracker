@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GasLoader": {
+      "commandName": "Project",
+      "commandLineArgs": "\"Host=localhost;Username=postgres;Password=pass;Database=PetrolTracker\" russiabase true"
+    }
+  }
+}
