@@ -8,11 +8,11 @@
 		@{
 			foreach (DbManager.GasStation el in Model.GasStations!)
 			{
-				<div class="glass-div">
+				<div class="glass-div GasStation">
 					<div class="card-header">@el.Name.ToUpper()</div>
 					<div class="card-body">
 						<div class="minimal-box-column">
-							<p>@el.Location</p>
+							<p class="location">@el.Location</p>
 						</div>
 							<div class="minimal-box-row">
 							@{
@@ -35,18 +35,30 @@
 <script src="https://api-maps.yandex.ru/2.1/?apikey=107a0c84-45d3-407b-a236-9daa3692445c&load=package.full&lang=ru-RU" type="text/javascript"></script>
 
 <script>
-		// Ожидаем загрузки API и создаем карту
+		var currentPlacemark;
+		var map;
 		ymaps.ready(function() {
 			console.log('API загружен, создаем карту...');
 
-			var map = new ymaps.Map("map", {
+			map = new ymaps.Map("map", {
 				center: [55.751574, 37.573856],
 				zoom: 10
 			});
-
-			console.log('Карта успешно создана!');
 		});
 
-		// Проверка, что ошибки нет
-		console.log('Скрипт выполнен, ожидаем загрузку API...');
-	</script>
+		const boxes = document.querySelectorAll('.GasStation');
+		boxes.forEach(box => {
+			box.addEventListener('click', function(e) {
+					var loc = this.querySelector('.location').innerText;
+					ymaps.geocode(loc).then(function(res){
+					const firstGeoObject = res.geoObjects.get(0);
+					const coordinates = firstGeoObject.geometry.getCoordinates();
+
+					if(currentPlacemark != 'undefined')
+						map.geoObjects.remove(currentPlacemark);
+					currentPlacemark = new ymaps.Placemark(coordinates);
+					map.geoObjects.add(currentPlacemark);
+				});
+			});
+		});
+</script>
