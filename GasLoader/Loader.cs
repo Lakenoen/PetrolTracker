@@ -5,6 +5,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DbManager;
+using Geocoding.Yandex;
+using Geocoding;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi.Script;
@@ -17,10 +19,12 @@ public class Loader
     private readonly Context _ctx;
     private readonly ChromeDriver _driver;
     private readonly ILogger? _logger = null;
+    private readonly IGeocoder geocoder;
 
     public int Delay { get; set; } = 2000;
-    public Loader(Context ctx, ILogger? logger)
+    public Loader(Context ctx, string mapApiKey, ILogger? logger)
     {
+        geocoder = new YandexGeocoder(mapApiKey);
         this._logger = logger;
         this._ctx = ctx;
         ChromeOptions options = new ChromeOptions();
@@ -28,6 +32,19 @@ public class Loader
         options.AddExcludedArgument("enable-automation");
 
         _driver = new ChromeDriver(options);
+    }
+
+    private double[] GetCoord(string address)
+    {
+        IEnumerable<Address> addresses = geocoder.GeocodeAsync(address).Result;
+
+        if (addresses.Count() <= 0)
+            throw new ApplicationException("Addresses is empty");
+
+        var coord = new double[2];
+        coord[0] = addresses.First().Coordinates.Latitude;
+        coord[1] = addresses.First().Coordinates.Longitude;
+        return coord;
     }
 
     private void GoToPageRussiabase(int region, int page)
@@ -83,11 +100,23 @@ public class Loader
                             throw new ApplicationException("names count not equal prices count");
 
                         string location = el.FindElement(By.ClassName("ListingCard_iconBlockText___egMo")).Text.ToLower();
+
+                        double[] coord = new double[2] {double.MinValue, double.MinValue};
+                        try
+                        {
+                            coord = GetCoord(location);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogWarning(ex.Message + " Skip station");
+                            continue;
+                        }
+
                         string update = el.FindElement(By.ClassName("ListingCard_info__SfFLf")).Text;
 
                         update = Regex.Match(update, @"\d{2}.\d{2}.\d{4}").Value;
 
-                        GasStation station = new GasStation { Location = location, Name = name };
+                        GasStation station = new GasStation { Address = location, Name = name, Latitude = coord[0], Longitude = coord[1] };
                         _ctx.GasStations.Add(station);
 
                         for (int i = 0; i < names.Count; i++)
@@ -96,12 +125,13 @@ public class Loader
 
                             if (petrol == null)
                             {
-                                petrol = new Petrol { Name = names[i], Price = prices[i], Update = DateTime.Parse(update) };
-                                petrol.Update = DateTime.SpecifyKind(petrol.Update.Value, DateTimeKind.Utc);
+                                petrol = new Petrol { Name = names[i], Price = prices[i]};
                                 _ctx.Petrols.Add(petrol);
                             }
 
-                            station.Petrols.Add(petrol);
+                            var upd = DateTime.Parse(update);
+                            upd = DateTime.SpecifyKind(upd, DateTimeKind.Utc);
+                            station.GasStationPetrols.Add(new GasStationPetrol { Petrol = petrol, Update = upd });
                         }
 
                     }
@@ -115,7 +145,10 @@ public class Loader
                     _logger?.LogWarning(ex.Message);
                 }
 
-                GoToPageRussiabase(region, ++p);
+                if(p + 1 <= lastPage)
+                    GoToPageRussiabase(region, p + 1);
+
+                ++p;
             }
 
         }

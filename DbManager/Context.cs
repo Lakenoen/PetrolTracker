@@ -33,5 +33,17 @@ namespace DbManager
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
             => optionsBuilder.UseNpgsql(GlobalSettings.ConnectionDB);
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder
+                .Entity<GasStation>()
+                .HasMany(p => p.Petrols)
+                .WithMany(p => p.Stations)
+                .UsingEntity<GasStationPetrol>(
+                    j => j.HasOne(p => p.Petrol).WithMany(p => p.GasStationPetrols).HasForeignKey(p => new { p.PetrolName, p.PetrolPrice}),
+                    j => j.HasOne(p => p.GasStation).WithMany(p => p.GasStationPetrols).HasForeignKey(p => p.GasStationId)
+                );
+        }
     }
 }
