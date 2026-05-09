@@ -18,4 +18,6 @@ public class GasStationPetrol
     public Petrol? Petrol { get; set; }
 
     public DateTime? Update { get; set; } = null;
+    public int Rating { get; set; } = 0;
+    public int Stars { get; set; } = 0;
 }
