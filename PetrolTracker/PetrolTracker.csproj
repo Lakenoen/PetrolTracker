@@ -8,7 +8,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DbManager\DbManager.csproj" />
-	<PackageReference Include="Yandex.Geocoding" Version="1.0.0" />
-  </ItemGroup>
-
-</Project>
+    <PackageReference Include="Yandex.Geocoding" Version="1.0.0" />
+    <PackageReference Inclu
