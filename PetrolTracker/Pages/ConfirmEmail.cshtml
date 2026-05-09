@@ -1,0 +1,84 @@
+@page
+@model PetrolTracker.Pages.ConfirmEmailModel
+@{
+    ViewData["Title"] = "Подтверждение email";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>Подтверждение email — PetrolTracker</title>
+    <link href="/css/auth.css" rel="stylesheet" />
+</head>
+<body>
+<div class="auth-container">
+    <h2>Подтверждение email</h2>
+    <p style="font-size:14px;color:#555;margin-bottom:12px;">
+        Введите 6-значный код, отправленный на вашу почту.
+    </p>
+
+    <div id="timer-box" class="alert alert-warn" style="text-align:center;font-weight:600;">
+        Осталось: <span id="timer">--:--</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success">@Model.SuccessMessage</div>
+    }
+
+    <form method="post">
+        <div class="form-group">
+            <label>Email</label>
+            <input asp-for="Input.Email" type="email" class="form-control" required />
+        </div>
+        <div class="form-group">
+            <label>Код подтверждения</label>
+            <input asp-for="Input.Code" class="form-control" required maxlength="6"
+                   pattern="[0-9]{6}" placeholder="123456" inputmode="numeric" autofocus />
+        </div>
+        <button type="submit" class="btn-primary">Подтвердить</button>
+    </form>
+
+    <form method="post" asp-page-handler="Resend" style="margin-top:8px;">
+        <input type="hidden" asp-for="Input.Email" />
+        <button type="submit" class="btn-secondary" style="width:100%;">Отправить код повторно</button>
+    </form>
+</div>
+
+<script>
+    (function () {
+        const secondsLeft = @Model.SecondsLeft;
+        const timerEl = document.getElementById('timer');
+        const boxEl = document.getElementById('timer-box');
+
+        if (secondsLeft <= 0) {
+            if (boxEl) boxEl.textContent = 'Время вышло. Возврат на главную...';
+            setTimeout(() => { window.location = '/Login'; }, 1500);
+            return;
+        }
+
+        let remaining = secondsLeft;
+        function render() {
+            const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+            const s = (remaining % 60).toString().padStart(2, '0');
+            timerEl.textContent = m + ':' + s;
+        }
+        render();
+        const tick = setInterval(() => {
+            remaining--;
+            render();
+            if (remaining <= 0) {
+                clearInterval(tick);
+                if (boxEl) boxEl.textContent = 'Время вышло. Возврат...';
+                setTimeout(() => { window.location = '/Login'; }, 1500);
+            }
+        }, 1000);
+    })();
+</script>
+</body>
+</html>
