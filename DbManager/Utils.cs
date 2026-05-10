@@ -27,6 +27,14 @@ public static class Utils
         }
     }
 
+    public static List<Petrol> GetAllPetrols()
+    {
+        return Context.Instance.Petrols
+            .GroupBy(el => el.Name)
+            .Select(g => new Petrol { Name = g.Key })
+            .OrderBy(e => e.Name)
+            .ToList();
+    }
     public static DateTime GetUpdate(GasStation station, Petrol petrol)
     {
         return station.GasStationPetrols.Where(p => p.Petrol == petrol).ToList().First().Update!.Value;
@@ -67,9 +75,13 @@ public static class Utils
     {
         switch (filter.Op.ToLower())
         {
+            case "=":
             case "equal": filter.Op = "="; break;
+            case "!=":
             case "not_equal": filter.Op = "!="; break;
+            case ">":
             case "more": filter.Op = ">"; break;
+            case "<":
             case "less": filter.Op = "<"; break;
             case "between": filter.Op = "between"; break;
             default: throw new ApplicationException("Unknown operation");
@@ -77,7 +89,9 @@ public static class Utils
 
         switch (filter.Gop.ToLower())
         {
+            case "&":
             case "and": filter.Gop = "and"; break;
+            case "|":
             case "or": filter.Gop = "or"; break;
             default: throw new ApplicationException("Unknown operation");
         }
