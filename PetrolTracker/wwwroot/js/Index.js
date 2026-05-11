@@ -10,6 +10,9 @@ var bottomSheet = document.getElementById('bottomSheet');
 var submit = document.getElementById('submit-button');
 var close = document.getElementById('close-button');
 var petrols = document.querySelectorAll('.choses-btn');
+var stations = document.getElementById('station-filter-input');
+var minSlider = document.getElementById('min-slider');
+var maxSlider = document.getElementById('max-slider');
 var filterPetrols = [];
 
 petrols.forEach(function (petrol) {
@@ -41,14 +44,34 @@ submit.addEventListener('click', function (e) {
 			petrolFilter.Filters.push({
 				Value : p.innerText,
 				Field : "Petrols.Name",
-				op : "equal"
+				Op : "equal",
+				Type: "str"
 			});
 		});
 		data.Filters.push(petrolFilter);
 	}
+
+
+	if(stations.value.length > 0){
+		stationName = {
+			Value : stations.value,
+			Field : "GasStations.Name",
+			Op : "like",
+			Type: "str"
+		};
+		data.Filters.push(stationName);
+	}
+
+	priceFilter = {
+		Value : minSlider.value + '\t' + maxSlider.value,
+		Field : "Petrols.Price",
+		Op : "between",
+		Type: "num"
+	}
+	
 	
 	document.querySelector('.scroll_div').innerHTML = '';
-	fetch('https://localhost:7157', {
+	fetch('http://localhost:5290', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json; charset=utf-8'
@@ -60,6 +83,12 @@ submit.addEventListener('click', function (e) {
 		}
 	});
 });
+
+function sliderInut(){
+	if (parseInt(minSlider.value) >= parseInt(maxSlider.value)) {
+   		minSlider.value = maxSlider.value;
+  	}
+}
 
 
 var currentPlacemark;

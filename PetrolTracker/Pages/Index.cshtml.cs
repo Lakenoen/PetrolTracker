@@ -9,7 +9,7 @@ namespace PetrolTracker.Pages
     [IgnoreAntiforgeryToken]
     public class IndexModel : PageModel
     {
-        public List<GasStation>? GasStations { get; set; } = null;
+        public List<StationInfo>? GasStations { get; set; } = null;
         public List<Petrol>? Petrols { get; set; } = null;
 
         public string GetUpdate(GasStation station, Petrol petrol) => Utils.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
@@ -23,7 +23,7 @@ namespace PetrolTracker.Pages
             if (!long.TryParse(HttpContext.Request.Query["page"], out long page))
                 page = 0;
 
-            GasStations = DbManager.Utils.GetGasTations(filter, page, 100);
+            GasStations = DbManager.Utils.GetStationsInfo(filter, page, 100);
             
             return Page();
         }
@@ -31,7 +31,6 @@ namespace PetrolTracker.Pages
         public async Task<IActionResult> OnPost()
         {
             var filter = await HttpContext.Request.ReadFromJsonAsync<Filter>();
-            GasStations = DbManager.Utils.GetGasTations(filter, 0, 100);
             string json_filter = JsonSerializer.Serialize(filter);
             return RedirectToPage("Index", new { filter = json_filter });
         }

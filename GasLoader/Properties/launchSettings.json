@@ -2,7 +2,7 @@
   "profiles": {
     "GasLoader": {
       "commandName": "Project",
-      "commandLineArgs": "\"Host=localhost;Username=postgres;Password=pass;Database=PetrolTracker\" 8ffc4b8c-3f4c-47d8-ad11-ea424f724453 russiabase true"
+      "commandLineArgs": "\"Host=localhost;Username=admin;Password=pass;Database=PetrolTracker\" 8ffc4b8c-3f4c-47d8-ad11-ea424f724453 russiabase true"
     }
   }
 }
