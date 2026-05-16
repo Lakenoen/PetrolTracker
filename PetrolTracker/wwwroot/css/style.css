@@ -1,5 +1,47 @@
 ﻿body {
     overflow: hidden;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* === Навбар === */
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    background: #1a1a2e;
+    color: #fff;
+    height: 52px;
+}
+
+.navbar-brand {
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+}
+
+.btn-logout {
+    padding: 5px 14px;
+    background: #e74c3c;
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.btn-logout:hover { background: #c0392b; }
+
+main {
+    height: calc(100vh - 52px);
 }
 
 .scroll_div {
@@ -11,7 +53,6 @@
 .grid-container {
     display: grid;
     grid-template-rows: 1fr 1fr;
-    height: 100vh;
 }
 
 .glass-div {

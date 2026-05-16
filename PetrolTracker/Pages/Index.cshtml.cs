@@ -1,12 +1,11 @@
-using System.Text;
-using System.Text.Json;
 using DbManager;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace PetrolTracker.Pages
 {
-    [IgnoreAntiforgeryToken]
+    [Authorize]
     public class IndexModel : PageModel
     {
         public List<GasStation>? GasStations { get; set; } = null;

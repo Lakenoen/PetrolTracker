@@ -23,6 +23,7 @@ namespace DbManager
         }
         public DbSet<Petrol> Petrols { get; set; }
         public DbSet<GasStation> GasStations { get; set; }
+        public DbSet<User> Users { get; set; }
 
         private Context()
         {
