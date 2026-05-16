@@ -1,4 +1,4 @@
-﻿namespace PetrolTracker;
+﻿namespace DbManager;
 public class Filter
 {
     public string Gop { get; set; } = "and";
