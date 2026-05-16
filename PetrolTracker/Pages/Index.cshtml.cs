@@ -1,31 +1,38 @@
+using System.Text;
+using System.Text.Json;
 using DbManager;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace PetrolTracker.Pages
 {
-    [Authorize]
+    [IgnoreAntiforgeryToken]
     public class IndexModel : PageModel
     {
-        public List<GasStation>? GasStations { get; set; } = null;
+        public List<StationInfo>? GasStations { get; set; } = null;
+        public List<Petrol>? Petrols { get; set; } = null;
 
         public string GetUpdate(GasStation station, Petrol petrol) => Utils.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
-        public void OnGet()
+        public IActionResult OnGet()
         {
-            if(long.TryParse(HttpContext.Request.Query["page"], out long page))
-            {
-                GasStations = DbManager.Utils.GetGasTations(null, page, 100);
-                return;
-            }
+            Petrols = Utils.GetAllPetrols();
+            Filter? filter = null;
+            if (HttpContext.Request.Query["filter"].Count > 0)
+                filter = JsonSerializer.Deserialize<Filter>(HttpContext.Request.Query["filter"]!);
 
-            GasStations = DbManager.Utils.GetGasTations(null, 0, 100);
+            if (!long.TryParse(HttpContext.Request.Query["page"], out long page))
+                page = 0;
+
+            GasStations = DbManager.Utils.GetStationsInfo(filter, page, 100);
+            
+            return Page();
         }
 
-        public async Task OnPost()
+        public async Task<IActionResult> OnPost()
         {
             var filter = await HttpContext.Request.ReadFromJsonAsync<Filter>();
-            GasStations = DbManager.Utils.GetGasTations(filter, 0, 100);
+            string json_filter = JsonSerializer.Serialize(filter);
+            return RedirectToPage("Index", new { filter = json_filter });
         }
     }
 }
