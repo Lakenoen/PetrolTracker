@@ -1,72 +1,179 @@
-﻿@page
+@page
 @model PetrolTracker.Pages.IndexModel
 
 <meta charset="UTF-8">
 <link href="/css/style.css" rel="stylesheet" type="text/css" />
 
 <div class="grid-container">
-	<div id="map"></div>
-	<div class="glass-div">
-		<div class="filter-container">
-			<button id="filter-submit">Submit</button>
-		</div>
-		<div class="scroll_div">
-			@{
-				foreach (DbManager.GasStation el in Model.GasStations!)
-				{
-					<div class="glass-div GasStation">
-						<div class="card-header">@el.Name.ToUpper()</div>
-						<div class="card-body">
-							<div class="minimal-box-column">
-								<p class="location">@el.Address</p>
-							</div>
-							<div class="minimal-box-row">
-								@{
-									foreach(var petrol in el.Petrols)
-									{
-										<div>
-											<p>@petrol.Name</p>
-											<p>@petrol.Price</p>
-											<p>@Model.GetUpdate(el, petrol)</p>
-										</div>
-									}
-								}
-							</div>
-						</div>
-					</div>
-				}
-			}
-		</div>
-	</div>
+
+    <!-- Левая часть: карта -->
+    <div id="map"></div>
+
+    <!-- Правая часть: фильтры + список -->
+    <div class="side-panel">
+
+        <!-- Карточка фильтров -->
+        <div class="filter-card">
+            <h3>⚙️ Фильтры</h3>
+
+            <div class="form-group">
+                <label>Название АЗС</label>
+                <input type="text" id="filter-name" class="form-control" placeholder="Например: лукойл" />
+            </div>
+
+            <div class="form-group">
+                <label>Вид топлива</label>
+                <select id="filter-fuel" class="form-control">
+                    <option value="">Все виды</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Цена, ₽</label>
+                <div class="price-range">
+                    <input type="number" id="filter-price-min" class="form-control" placeholder="от" min="0" />
+                    <input type="number" id="filter-price-max" class="form-control" placeholder="до" min="0" />
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button id="filter-submit" class="btn-primary">Применить</button>
+                <button id="filter-reset" class="btn-secondary">Сбросить</button>
+            </div>
+        </div>
+
+        <!-- Счётчик -->
+        <div class="results-count" id="results-count"></div>
+
+        <!-- Список заправок -->
+        <div class="scroll_div" id="station-list">
+            @foreach (DbManager.GasStation el in Model.GasStations!)
+            {
+                <div class="station-card GasStation"
+                     data-name="@el.Name.ToLower()"
+                     data-fuels="@string.Join(",", el.Petrols.Select(p => p.Name.ToLower()))">
+
+                    <div class="station-name">@el.Name.ToUpper()</div>
+                    <div class="station-address location">@el.Address</div>
+
+                    <div class="fuels-list">
+                        @foreach (var petrol in el.Petrols)
+                        {
+                            <div class="fuel-tag" data-fuel="@petrol.Name.ToLower()" data-price="@petrol.Price">
+                                <span class="fuel-name">@petrol.Name</span>
+                                <span class="fuel-price">@petrol.Price ₽</span>
+                                <span class="fuel-date">@Model.GetUpdate(el, petrol)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+    </div>
 </div>
 
 <script src="https://api-maps.yandex.ru/2.1/?apikey=107a0c84-45d3-407b-a236-9daa3692445c&load=package.full&lang=ru-RU" type="text/javascript"></script>
 
 <script>
-		var currentPlacemark;
-		var map;
-		ymaps.ready(function() {
-			console.log('API загружен, создаем карту...');
+    // === Карта ===
+    var currentPlacemark;
+    var map;
 
-			map = new ymaps.Map("map", {
-				center: [55.751574, 37.573856],
-				zoom: 10
-			});
-		});
+    ymaps.ready(function () {
+        map = new ymaps.Map("map", {
+            center: [55.751574, 37.573856],
+            zoom: 10
+        });
+    });
 
-		const boxes = document.querySelectorAll('.GasStation');
-		boxes.forEach(box => {
-			box.addEventListener('click', function(e) {
-					var loc = this.querySelector('.location').innerText;
-					ymaps.geocode(loc).then(function(res){
-					const firstGeoObject = res.geoObjects.get(0);
-					const coordinates = firstGeoObject.geometry.getCoordinates();
+    // Клик по карточке — метка на карте
+    document.querySelectorAll('.GasStation').forEach(function (card) {
+        card.addEventListener('click', function () {
+            document.querySelectorAll('.GasStation').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
 
-					if(currentPlacemark != 'undefined')
-						map.geoObjects.remove(currentPlacemark);
-					currentPlacemark = new ymaps.Placemark(coordinates);
-					map.geoObjects.add(currentPlacemark);
-				});
-			});
-		});
+            var loc = this.querySelector('.location').innerText;
+            ymaps.geocode(loc).then(function (res) {
+                var firstGeoObject = res.geoObjects.get(0);
+                var coordinates = firstGeoObject.geometry.getCoordinates();
+
+                if (currentPlacemark) map.geoObjects.remove(currentPlacemark);
+                currentPlacemark = new ymaps.Placemark(coordinates);
+                map.geoObjects.add(currentPlacemark);
+                map.setCenter(coordinates, 14, { duration: 500 });
+            });
+        });
+    });
+
+    // === Фильтры (клиентская сторона) ===
+
+    // Заполняем select уникальными видами топлива
+    var fuelSet = new Set();
+    document.querySelectorAll('.fuel-tag').forEach(function (tag) {
+        fuelSet.add(tag.dataset.fuel);
+    });
+    var fuelSelect = document.getElementById('filter-fuel');
+    Array.from(fuelSet).sort().forEach(function (fuel) {
+        var opt = document.createElement('option');
+        opt.value = fuel;
+        opt.textContent = fuel.toUpperCase();
+        fuelSelect.appendChild(opt);
+    });
+
+    function applyFilters() {
+        var nameFilter  = document.getElementById('filter-name').value.toLowerCase().trim();
+        var fuelFilter  = document.getElementById('filter-fuel').value.toLowerCase();
+        var priceMin    = parseFloat(document.getElementById('filter-price-min').value) || 0;
+        var priceMax    = parseFloat(document.getElementById('filter-price-max').value) || Infinity;
+
+        var cards = document.querySelectorAll('.GasStation');
+        var visible = 0;
+
+        cards.forEach(function (card) {
+            var name  = card.dataset.name || '';
+            var fuels = card.dataset.fuels || '';
+
+            // Фильтр по названию
+            var nameOk = !nameFilter || name.includes(nameFilter);
+
+            // Фильтр по топливу и цене
+            var fuelOk = true;
+            if (fuelFilter || priceMin > 0 || priceMax < Infinity) {
+                var tags = card.querySelectorAll('.fuel-tag');
+                fuelOk = Array.from(tags).some(function (tag) {
+                    var tagFuel  = tag.dataset.fuel || '';
+                    var tagPrice = parseFloat(tag.dataset.price) || 0;
+                    var fuelMatch = !fuelFilter || tagFuel === fuelFilter;
+                    var priceMatch = tagPrice >= priceMin && tagPrice <= priceMax;
+                    return fuelMatch && priceMatch;
+                });
+            }
+
+            var show = nameOk && fuelOk;
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        document.getElementById('results-count').textContent = 'Найдено: ' + visible;
+    }
+
+    function resetFilters() {
+        document.getElementById('filter-name').value = '';
+        document.getElementById('filter-fuel').value = '';
+        document.getElementById('filter-price-min').value = '';
+        document.getElementById('filter-price-max').value = '';
+        document.querySelectorAll('.GasStation').forEach(function (card) {
+            card.style.display = '';
+        });
+        var total = document.querySelectorAll('.GasStation').length;
+        document.getElementById('results-count').textContent = 'Найдено: ' + total;
+    }
+
+    document.getElementById('filter-submit').addEventListener('click', applyFilters);
+    document.getElementById('filter-reset').addEventListener('click', resetFilters);
+
+    // Показываем начальный счётчик
+    var total = document.querySelectorAll('.GasStation').length;
+    document.getElementById('results-count').textContent = 'Найдено: ' + total;
 </script>

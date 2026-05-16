@@ -21,7 +21,7 @@ public class Loader
     private readonly ILogger? _logger = null;
     private readonly IGeocoder geocoder;
 
-    public int Delay { get; set; } = 2000;
+    public int Delay { get; set; } = 6000;
     public Loader(Context ctx, string mapApiKey, ILogger? logger)
     {
         geocoder = new YandexGeocoder(mapApiKey);
@@ -63,7 +63,7 @@ public class Loader
 
         Thread.Sleep(this.Delay);
     }
-    public void LoadFromRussiabaseAsync(int region)
+    public void LoadFromRussiabaseAsync(int region, int maxPage = int.MaxValue)
     {
         _logger?.LogInformation("Starting parse...");
         GoToPageRussiabase(region, 1);
@@ -75,7 +75,7 @@ public class Loader
         try
         {
             int p = 1;
-            while(p <= lastPage)
+            while (p <= lastPage && p <= maxPage)
             {
                 try
                 {

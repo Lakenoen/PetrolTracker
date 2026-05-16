@@ -15,11 +15,12 @@ class Program
             GlobalSettings.ConnectionDB = args[0];
             string mapApiKey = args[1];
             string from = args[2];
+            int maxPage = args.Length > 4 ? int.Parse(args[4]) : int.MaxValue;
 
             Loader loader = new Loader(DbManager.Context.Instance, mapApiKey, logger);
             switch (from.ToLower())
             {
-                case "russiabase": loader.LoadFromRussiabaseAsync(90); break;
+                case "russiabase": loader.LoadFromRussiabaseAsync(90, 6); break;
                 default: throw new ApplicationException("Unknown source");
             }
         }
