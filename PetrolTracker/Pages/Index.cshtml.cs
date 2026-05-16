@@ -1,20 +1,24 @@
 using System.Text;
 using System.Text.Json;
 using DbManager;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace PetrolTracker.Pages
 {
     [IgnoreAntiforgeryToken]
+    [Authorize]
     public class IndexModel : PageModel
     {
         public List<StationInfo>? GasStations { get; set; } = null;
         public List<Petrol>? Petrols { get; set; } = null;
+        public (double min, double max) PriceRange {get;set;} = (0,100);
 
         public string GetUpdate(GasStation station, Petrol petrol) => Utils.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
         public IActionResult OnGet()
         {
+            PriceRange = (Context.Instance.Petrols.Min(p => p.Price), Context.Instance.Petrols.Max(p => p.Price));
             Petrols = Utils.GetAllPetrols();
             Filter? filter = null;
             if (HttpContext.Request.Query["filter"].Count > 0)

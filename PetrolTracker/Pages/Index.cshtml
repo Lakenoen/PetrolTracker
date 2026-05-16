@@ -23,16 +23,22 @@
 
             <div class="form-group">
                 <label>Вид топлива</label>
-                <select id="filter-fuel" class="form-control">
-                    <option value="">Все виды</option>
-                </select>
+                <div id="filter-fuel" class="form-control row-direction-container">
+                    @{
+                        foreach(DbManager.Petrol petrol in Model.Petrols!){
+                            <button class="allow-fuels" data-fuel="@petrol.Name.ToLower()" data-price="@petrol.Price">
+                                <span class="fuel-name">@petrol.Name</span>
+                            </button>
+                        }
+                    }
+                </div>
             </div>
 
             <div class="form-group">
                 <label>Цена, ₽</label>
                 <div class="price-range">
-                    <input type="number" id="filter-price-min" class="form-control" placeholder="от" min="0" />
-                    <input type="number" id="filter-price-max" class="form-control" placeholder="до" min="0" />
+                    <input type="number" id="filter-price-min" class="form-control" placeholder="от" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.min"/>
+                    <input type="number" id="filter-price-max" class="form-control" placeholder="до" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.max"/>
                 </div>
             </div>
 
@@ -42,19 +48,16 @@
             </div>
         </div>
 
-        <!-- Счётчик -->
-        <div class="results-count" id="results-count"></div>
-
         <!-- Список заправок -->
         <div class="scroll_div" id="station-list">
-            @foreach (DbManager.GasStation el in Model.GasStations!)
+            @foreach (DbManager.StationInfo el in Model.GasStations!)
             {
                 <div class="station-card GasStation"
-                     data-name="@el.Name.ToLower()"
+                     data-name="@el.Station.Name.ToLower()"
                      data-fuels="@string.Join(",", el.Petrols.Select(p => p.Name.ToLower()))">
 
-                    <div class="station-name">@el.Name.ToUpper()</div>
-                    <div class="station-address location">@el.Address</div>
+                    <div class="station-name">@el.Station.Name.ToUpper()</div>
+                    <div class="station-address location">@el.Station.Address</div>
 
                     <div class="fuels-list">
                         @foreach (var petrol in el.Petrols)
@@ -62,7 +65,7 @@
                             <div class="fuel-tag" data-fuel="@petrol.Name.ToLower()" data-price="@petrol.Price">
                                 <span class="fuel-name">@petrol.Name</span>
                                 <span class="fuel-price">@petrol.Price ₽</span>
-                                <span class="fuel-date">@Model.GetUpdate(el, petrol)</span>
+                                <span class="fuel-date">@Model.GetUpdate(el.Station, petrol)</span>
                             </div>
                         }
                     </div>
@@ -108,54 +111,83 @@
 
     // === Фильтры (клиентская сторона) ===
 
-    // Заполняем select уникальными видами топлива
-    var fuelSet = new Set();
-    document.querySelectorAll('.fuel-tag').forEach(function (tag) {
-        fuelSet.add(tag.dataset.fuel);
-    });
-    var fuelSelect = document.getElementById('filter-fuel');
-    Array.from(fuelSet).sort().forEach(function (fuel) {
-        var opt = document.createElement('option');
-        opt.value = fuel;
-        opt.textContent = fuel.toUpperCase();
-        fuelSelect.appendChild(opt);
+    document.querySelectorAll('.allow-fuels').forEach((el)=>{
+        el.addEventListener('click', (e)=> {
+            if(!el.classList.contains('allow-fuels-active'))
+                el.classList = ['allow-fuels-active'];
+            else
+                el.classList = ['allow-fuels'];
+        });
     });
 
     function applyFilters() {
+        const data = {
+            Gop: 'and',
+            Filters: [
+                
+            ]
+        };
+
         var nameFilter  = document.getElementById('filter-name').value.toLowerCase().trim();
-        var fuelFilter  = document.getElementById('filter-fuel').value.toLowerCase();
         var priceMin    = parseFloat(document.getElementById('filter-price-min').value) || 0;
         var priceMax    = parseFloat(document.getElementById('filter-price-max').value) || Infinity;
 
-        var cards = document.querySelectorAll('.GasStation');
-        var visible = 0;
+        priceFilter = {
+                Value : priceMin + '\t' + priceMax,
+                Field : "Petrols.Price",
+                Op : "between",
+                Type: "num"
+		    };
+        data.Filters.push(priceFilter);
 
-        cards.forEach(function (card) {
-            var name  = card.dataset.name || '';
-            var fuels = card.dataset.fuels || '';
+        if(nameFilter){
+            stationName = {
+                Value : nameFilter,
+                Field : "GasStations.Name",
+                Op : "like",
+                Type: "str"
+		    };
+		    data.Filters.push(stationName);
+        }
+        
+        (function (){
+            petrolFilter = {
+                Gop: 'or',
+                Filters: [
 
-            // Фильтр по названию
-            var nameOk = !nameFilter || name.includes(nameFilter);
+                ]
+            };
 
-            // Фильтр по топливу и цене
-            var fuelOk = true;
-            if (fuelFilter || priceMin > 0 || priceMax < Infinity) {
-                var tags = card.querySelectorAll('.fuel-tag');
-                fuelOk = Array.from(tags).some(function (tag) {
-                    var tagFuel  = tag.dataset.fuel || '';
-                    var tagPrice = parseFloat(tag.dataset.price) || 0;
-                    var fuelMatch = !fuelFilter || tagFuel === fuelFilter;
-                    var priceMatch = tagPrice >= priceMin && tagPrice <= priceMax;
-                    return fuelMatch && priceMatch;
+            document.querySelectorAll('.allow-fuels-active').forEach((allowFuel)=>{
+                let fuelName = allowFuel.querySelector(".fuel-name").innerText;
+                alert(fuelName);
+                petrolFilter.Filters.push({
+                    Value : fuelName,
+                    Field : "Petrols.Name",
+                    Op : "equal",
+                    Type: "str"
                 });
+            });
+
+            if(petrolFilter.Filters.length > 0)
+                data.Filters.push(petrolFilter);
+        })();
+
+        if(data.Filters.length == 0)
+            return;
+
+        document.querySelector('.scroll_div').innerHTML = '';
+        fetch('http://localhost:5290', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json; charset=utf-8'
+            },
+            body: JSON.stringify(data)
+        }).then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
             }
-
-            var show = nameOk && fuelOk;
-            card.style.display = show ? '' : 'none';
-            if (show) visible++;
         });
-
-        document.getElementById('results-count').textContent = 'Найдено: ' + visible;
     }
 
     function resetFilters() {
@@ -172,8 +204,4 @@
 
     document.getElementById('filter-submit').addEventListener('click', applyFilters);
     document.getElementById('filter-reset').addEventListener('click', resetFilters);
-
-    // Показываем начальный счётчик
-    var total = document.querySelectorAll('.GasStation').length;
-    document.getElementById('results-count').textContent = 'Найдено: ' + total;
 </script>
