@@ -9,3 +9,8 @@ public class Filter
     public string Type {get;set;} = "num"; //or str
 
 }
+
+public class FilterException : ApplicationException
+{
+    public FilterException(string? msg) : base(msg) {}
+}

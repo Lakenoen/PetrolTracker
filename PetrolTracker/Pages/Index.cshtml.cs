@@ -11,7 +11,7 @@ namespace PetrolTracker.Pages
     [Authorize]
     public class IndexModel : PageModel
     {
-        public List<StationInfo>? GasStations { get; set; } = null;
+        public List<GasStation>? GasStations { get; set; } = null;
         public List<Petrol>? Petrols { get; set; } = null;
         public (double min, double max) PriceRange {get;set;} = (0,100);
 
@@ -27,7 +27,7 @@ namespace PetrolTracker.Pages
             if (!long.TryParse(HttpContext.Request.Query["page"], out long page))
                 page = 0;
 
-            GasStations = DbManager.Utils.GetStationsInfo(filter, page, 100);
+            GasStations = DbManager.Utils.GetStations(filter, page, 100);
             
             return Page();
         }
