@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using PetrolTracker.Models;
+using DbManager;
 using Microsoft.AspNetCore.Identity;
 
 namespace PetrolTracker.Services;

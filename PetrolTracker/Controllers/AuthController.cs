@@ -1,3 +1,4 @@
+using DbManager;
 using PetrolTracker.Models;
 using PetrolTracker.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -87,7 +88,7 @@ public class AuthController : ControllerBase
         {
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddHours(1)
+            Expires = DateTimeOffset.UtcNow.AddYears(1)
         });
 
         return Ok(new AuthResponse(token, user.UserName ?? "", user.Email ?? "", roles));

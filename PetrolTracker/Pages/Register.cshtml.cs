@@ -1,3 +1,4 @@
+using DbManager;
 using PetrolTracker.Models;
 using PetrolTracker.Services;
 using Microsoft.AspNetCore.Identity;

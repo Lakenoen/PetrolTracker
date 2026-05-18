@@ -1,3 +1,4 @@
+using DbManager;
 using PetrolTracker.Models;
 using PetrolTracker.Services;
 using Microsoft.AspNetCore.Identity;
@@ -109,7 +110,7 @@ public class ConfirmEmailModel : PageModel
         {
             HttpOnly = true,
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddHours(1)
+            Expires = DateTimeOffset.UtcNow.AddYears(1)
         });
 
         ClearConfirmationCookies();

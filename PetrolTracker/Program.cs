@@ -1,5 +1,4 @@
 using DbManager;
-using PetrolTracker.Data;
 using PetrolTracker.Models;
 using PetrolTracker.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -24,9 +23,9 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-// === EF Core InMemory — для Identity (пользователи) ===
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseInMemoryDatabase("PetrolTrackerAuth"));
+// === EF Core PostgreSQL — единый контекст для Identity и заправок ===
+builder.Services.AddDbContext<Context>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // === ASP.NET Core Identity ===
 builder.Services
@@ -41,7 +40,7 @@ builder.Services
         options.User.RequireUniqueEmail = true;
         options.Tokens.EmailConfirmationTokenProvider = "SixDigit";
     })
-    .AddEntityFrameworkStores<AppDbContext>()
+    .AddEntityFrameworkStores<Context>()
     .AddDefaultTokenProviders()
     .AddTokenProvider<SixDigitCodeTokenProvider>("SixDigit");
 
@@ -98,6 +97,14 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// === Создаём таблицы Identity + заправок если их нет ===
+// Должно быть ДО любого обращения к Context.Instance из DbManager
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<Context>();
+    db.Database.EnsureCreated();
+}
+
 // === Сидинг ролей и admin-пользователя ===
 using (var scope = app.Services.CreateScope())
 {
@@ -124,7 +131,8 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// === PetrolTracker: PostgreSQL через DbManager ===
+// === PetrolTracker: PostgreSQL через DbManager (синглтон) ===
+// EnsureCreated увидит что БД уже есть после Migrate() и ничего не сделает
 GlobalSettings.UpdateDB = false;
 
 app.UseStaticFiles();

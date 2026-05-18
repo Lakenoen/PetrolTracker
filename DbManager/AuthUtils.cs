@@ -26,11 +26,11 @@ public static class AuthUtils
         => HashPassword(password, salt) == storedHash;
 
     public static User? FindUser(string username)
-        => Context.Instance.Users.FirstOrDefault(u => u.Username == username);
+        => Context.Instance.LegacyUsers.FirstOrDefault(u => u.Username == username);
 
     public static User? CreateUser(string username, string password, string role = "user")
     {
-        if (Context.Instance.Users.Any(u => u.Username == username))
+        if (Context.Instance.LegacyUsers.Any(u => u.Username == username))
             return null;
 
         string salt = GenerateSalt();
@@ -45,7 +45,7 @@ public static class AuthUtils
             CreatedAt = DateTime.UtcNow
         };
 
-        Context.Instance.Users.Add(user);
+        Context.Instance.LegacyUsers.Add(user);
         Context.Instance.SaveChanges();
         return user;
     }

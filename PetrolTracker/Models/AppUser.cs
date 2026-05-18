@@ -1,12 +1,6 @@
-using Microsoft.AspNetCore.Identity;
-
 namespace PetrolTracker.Models;
 
-public class AppUser : IdentityUser
-{
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-
+// DTO-записи для запросов аутентификации
 public record RegisterRequest(string Email, string UserName, string Password);
 public record LoginRequest(string Email, string Password);
 public record ConfirmEmailRequest(string Email, string Code);
