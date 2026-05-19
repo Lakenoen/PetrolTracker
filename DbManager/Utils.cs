@@ -5,75 +5,69 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+<<<<<<< HEAD
+=======
+using static System.Runtime.InteropServices.JavaScript.JSType;
+>>>>>>> dimasik/main
 
 namespace DbManager;
 
 public static class Utils
 {
+    public class SqlCommandException : ApplicationException
+    {
+        public string CommandText {get; init;}
+        public SqlCommandException(string command) : base()
+        {
+            CommandText = command;
+        }
+    }
+
     private static string GasStationsRawSQL = @"SELECT * FROM ""GasStations""
                 left join ""GasStationPetrol"" on ""GasStations"".""Id"" = ""GasStationPetrol"".""GasStationId""
                 left join ""Petrols"" on ""Petrols"".""Name"" = ""GasStationPetrol"".""PetrolName""
 					and ""Petrols"".""Price"" = ""GasStationPetrol"".""PetrolPrice""
                 {0} LIMIT {1} OFFSET {2}";
 
-    public static List<StationInfo> GetStationsInfo(Filter? filter, long page, long size)
+    public static List<GasStation> GetStations(Filter? filter, long page, long size)
     {
-        var result = new Dictionary<long, StationInfo>();
-        
+        List<GasStation> result = new List<GasStation>();
+
         string where = "";
         if (filter is not null)
             where = DbManager.Utils.MakeSqlFromFilter(filter);
         
 
-        SqlDynamicExecute(string.Format(GasStationsRawSQL, where, size, page), reader =>
+        var ids = SqlDynamicExecute(string.Format(GasStationsRawSQL, where, size, page), reader =>
         {
-            if (result.TryGetValue(reader.GetInt64(0), out StationInfo? info))
-            {
-                info.Petrols.Add(new Petrol{
-                    Name = reader.GetString(13),
-                    Price = reader.GetDouble(14)
-                    });
-                info.StationPetols.Add(new GasStationPetrol
-                {
-                    GasStationId = reader.GetInt64(0),
-                    PetrolName = reader.GetString(8),
-                    PetrolPrice = reader.GetDouble(9),
-                });
-            }
-            else
-            {
-                result[reader.GetInt64(0)] = new StationInfo{Station = new GasStation
-                    {
-                        Id = reader.GetInt64(0),
-                    }
-                };
-            }
-            return result[reader.GetInt64(0)];
-        });
+            return reader.GetInt64(0);
+        }).Distinct().ToList();
 
-        foreach (StationInfo elem in result.Values)
+        foreach (long id in ids)
         {
-            elem.Station = Context.Instance.GasStations.Where(s => s.Id == elem.Station.Id)
+            GasStation station = Context.Instance.GasStations.Where(s => s.Id == id)
                 .Include(p => p.Petrols).ThenInclude(e => e.GasStationPetrols).First();
-            elem.Petrols = elem.Station.Petrols;
-            elem.StationPetols = elem.Station.GasStationPetrols;
+            result.Add(station);
         }
-        return result.Values.ToList();
+        return result;
     }
 
     private static List<dynamic> SqlDynamicExecute(string query, Func<DbDataReader,object> factory)
     {
-        using (var command = Context.Instance.Database.GetDbConnection().CreateCommand())
-        {
+        try{
+            using var command = Context.Instance.Database.GetDbConnection().CreateCommand();
             command.CommandText = query;
             Context.Instance.Database.OpenConnection();
+
             var results = new List<dynamic>();
-            using (var reader = command.ExecuteReader())
-            {
-                while (reader.Read())
-                    results.Add(factory.Invoke(reader));
-            }
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+                results.Add(factory.Invoke(reader));
             return results;
+        }
+        catch
+        {
+            throw new SqlCommandException(query);
         }
     }
 
@@ -123,6 +117,26 @@ public static class Utils
 
     private static void FixFilterForDB(Filter filter)
     {
+        if( (filter.Value.Count() != 0 || filter.Field.Count() != 0) && filter.Filters.Count() != 0)
+            throw new FilterException("The filter must be either a container or a low-level filter");
+
+        if( !((filter.Field.Count() == 0 || filter.Value.Count() != 0) && (filter.Value.Count() == 0 || filter.Field.Count() != 0)) )
+            throw new FilterException("Field must be <=> Value");
+
+        switch (filter.Op.ToLower())
+        {
+            case "between":
+                {
+                    if(!filter.Type.ToLower().Equals("num"))
+                        throw new FilterException("Mismatch between operation and type");
+                };break;
+            case "like":
+                {
+                    if(!filter.Type.ToLower().Equals("str"))
+                        throw new FilterException("Mismatch between operation and type");
+                };break;
+        }
+
         switch (filter.Op.ToLower())
         {
             case "=":

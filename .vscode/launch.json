@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "name": "C#: PetrolTracker [http]",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/PetrolTracker/PetrolTracker.csproj",
+            "launchConfigurationId": "TargetFramework=;http"
+        }
+    ]
+}
