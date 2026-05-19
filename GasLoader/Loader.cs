@@ -21,7 +21,7 @@ public class Loader
     private readonly ILogger? _logger = null;
     private readonly IGeocoder geocoder;
 
-    public int Delay { get; set; } = 2000;
+    public int Delay { get; set; } = 6000;
     public Loader(Context ctx, string mapApiKey, ILogger? logger)
     {
         geocoder = new YandexGeocoder(mapApiKey);

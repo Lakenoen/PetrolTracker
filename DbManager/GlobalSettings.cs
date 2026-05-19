@@ -8,6 +8,6 @@ namespace DbManager;
 
 public static class GlobalSettings
 {
-    public static string ConnectionDB = "Host=localhost;Username=admin;Password=pass;Database=PetrolTracker";
+    public static string ConnectionDB = "Host=localhost;Username=postgres;Password=pass;Database=PetrolTracker";
     public static bool UpdateDB = true;
 }

@@ -18,7 +18,8 @@ namespace PetrolTracker.Pages
         public string GetUpdate(GasStation station, Petrol petrol) => Utils.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
         public IActionResult OnGet()
         {
-            PriceRange = (Context.Instance.Petrols.Min(p => p.Price), Context.Instance.Petrols.Max(p => p.Price));
+            if (Context.Instance.Petrols.Any())
+                PriceRange = (Context.Instance.Petrols.Min(p => p.Price), Context.Instance.Petrols.Max(p => p.Price));
             Petrols = Utils.GetAllPetrols();
             Filter? filter = null;
             if (HttpContext.Request.Query["filter"].Count > 0)

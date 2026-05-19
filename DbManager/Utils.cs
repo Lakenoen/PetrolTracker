@@ -5,10 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-<<<<<<< HEAD
-=======
+
 using static System.Runtime.InteropServices.JavaScript.JSType;
->>>>>>> dimasik/main
+
 
 namespace DbManager;
 
