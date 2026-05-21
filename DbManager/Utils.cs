@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DbManager;
@@ -20,36 +24,13 @@ public static class Utils
         }
     }
 
-    private static string GasStationsRawSQL = @"SELECT * FROM ""GasStations""
+    internal static string GasStationsRawSQL = @"SELECT * FROM ""GasStations""
                 left join ""GasStationPetrol"" on ""GasStations"".""Id"" = ""GasStationPetrol"".""GasStationId""
                 left join ""Petrols"" on ""Petrols"".""Name"" = ""GasStationPetrol"".""PetrolName""
 					and ""Petrols"".""Price"" = ""GasStationPetrol"".""PetrolPrice""
                 {0} LIMIT {1} OFFSET {2}";
 
-    public static List<GasStation> GetStations(Filter? filter, long page, long size)
-    {
-        List<GasStation> result = new List<GasStation>();
-
-        string where = "";
-        if (filter is not null)
-            where = DbManager.Utils.MakeSqlFromFilter(filter);
-        
-
-        var ids = SqlDynamicExecute(string.Format(GasStationsRawSQL, where, size, page), reader =>
-        {
-            return reader.GetInt64(0);
-        }).Distinct().ToList();
-
-        foreach (long id in ids)
-        {
-            GasStation station = Context.Instance.GasStations.Where(s => s.Id == id)
-                .Include(p => p.Petrols).ThenInclude(e => e.GasStationPetrols).First();
-            result.Add(station);
-        }
-        return result;
-    }
-
-    private static List<dynamic> SqlDynamicExecute(string query, Func<DbDataReader,object> factory)
+    internal static List<dynamic> SqlDynamicExecute(string query, Func<DbDataReader,object> factory)
     {
         try{
             using var command = Context.Instance.Database.GetDbConnection().CreateCommand();
@@ -68,20 +49,7 @@ public static class Utils
         }
     }
 
-    public static List<Petrol> GetAllPetrols()
-    {
-        return Context.Instance.Petrols
-            .GroupBy(el => el.Name)
-            .Select(g => new Petrol { Name = g.Key })
-            .OrderBy(e => e.Name)
-            .ToList();
-    }
-    public static DateTime GetUpdate(GasStation station, Petrol petrol)
-    {
-        return station.GasStationPetrols.Where(p => p.Petrol == petrol).ToList().First().Update!.Value;
-    }
-
-    private static void MakeStringFromFilter(Filter filter, StringBuilder sb)
+    internal static void MakeStringFromFilter(Filter filter, StringBuilder sb)
     {
         sb.Append("(");
 
@@ -112,7 +80,7 @@ public static class Utils
         sb.Append(")");
     }
 
-    private static void FixFilterForDB(Filter filter)
+    internal static void FixFilterForDB(Filter filter)
     {
         if( (filter.Value.Count() != 0 || filter.Field.Count() != 0) && filter.Filters.Count() != 0)
             throw new FilterException("The filter must be either a container or a low-level filter");
@@ -173,12 +141,182 @@ public static class Utils
         if(filter.Type.ToLower() == "str")
             filter.Value = $"\'{filter.Value}\'";
     }
-    public static string MakeSqlFromFilter(Filter filter)
+    internal static string MakeSqlFromFilter(Filter filter)
     {
         StringBuilder sb = new StringBuilder();
         sb.Append("where ");
         MakeStringFromFilter(filter, sb);
         return sb.ToString();
+    }
+
+    internal static byte[] CreateSalt()
+    {
+        const int SaltLength = 32;
+        byte[] salt = new byte[SaltLength];
+        var rngRand = RandomNumberGenerator.Create();
+        rngRand.GetBytes(salt);
+        return salt;
+    }
+    internal static string CreateHashPassword(byte[] salt, string password)
+    {
+        byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
+        byte[] saltedPassword = new byte[salt.Length + passwordBytes.Length];
+        Buffer.BlockCopy(salt, 0, saltedPassword, 0, salt.Length);
+        Buffer.BlockCopy(passwordBytes, 0, saltedPassword, salt.Length, passwordBytes.Length);
+
+        using var hash = SHA256.Create();
+
+        return Convert.ToBase64String(hash.ComputeHash(saltedPassword));
+    }
+
+    public class ProtectDict<Key, Value> : IDictionary<Key, Value> where Key : notnull
+    {
+        private readonly Dictionary<Key,Value> _dict = new Dictionary<Key, Value>();
+        private object locker = new();
+
+        public ProtectDict()
+        {
+            
+        }
+
+        public Value this[Key key] { 
+            get
+            {
+                lock(locker){
+                    return _dict[key];
+                }
+            }
+            set
+            {
+                lock(locker){
+                    _dict[key] = value;
+                }
+            }
+        }
+
+        public ICollection<Key> Keys
+        {
+            get
+            {
+                lock(locker){
+                    var list = new List<Key>();
+                    foreach(var el in _dict.Keys)
+                    {
+                        list.Add(el);
+                    }
+                    return list;
+                }
+            }
+        }
+
+        public ICollection<Value> Values 
+        {
+            get
+            {
+                lock(locker){
+                    var list = new List<Value>();
+                    foreach(var el in _dict.Values)
+                    {
+                        list.Add(el);
+                    }
+                    return list;
+                }
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                lock(locker){
+                    return _dict.Count;
+                }
+            }
+        }
+
+        public bool IsReadOnly => false;
+
+        public void Add(Key key, Value value)
+        {
+            lock(locker){
+                _dict.Add(key,value);
+            }
+        }
+
+        public void Add(KeyValuePair<Key, Value> item)
+        {
+            lock(locker){
+                _dict.Add(item.Key,item.Value);
+            }
+        }
+
+        public void Clear()
+        {
+            lock(locker){
+                _dict.Clear();
+            }
+        }
+
+        public bool Contains(KeyValuePair<Key, Value> item)
+        {
+            lock(locker){
+                return _dict.Contains(item);
+            }
+        }
+
+        public bool ContainsKey(Key key)
+        {
+            lock(locker){
+                return _dict.ContainsKey(key);
+            }
+        }
+
+        public void CopyTo(KeyValuePair<Key, Value>[] array, int arrayIndex)
+        {
+            lock (locker)
+            {
+                int i = arrayIndex;
+                foreach(KeyValuePair<Key,Value> el in _dict)
+                {
+                    if(i >= array.Length)
+                        break;
+                    array[i] = el;
+                    ++i;
+                }
+            }
+        }
+
+        public IEnumerator<KeyValuePair<Key, Value>> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Remove(Key key)
+        {
+            lock(locker){
+                return _dict.Remove(key);
+            }
+        }
+
+        public bool Remove(KeyValuePair<Key, Value> item)
+        {
+            lock(locker){
+                _dict.Remove(item.Key);
+            }
+            return true;
+        }
+
+        public bool TryGetValue(Key key, [MaybeNullWhen(false)] out Value value)
+        {
+            lock(locker){
+                return _dict.TryGetValue(key, out value);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 
 }

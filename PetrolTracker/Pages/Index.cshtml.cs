@@ -15,11 +15,11 @@ namespace PetrolTracker.Pages
         public List<Petrol>? Petrols { get; set; } = null;
         public (double min, double max) PriceRange {get;set;} = (0,100);
 
-        public string GetUpdate(GasStation station, Petrol petrol) => Utils.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
+        public string GetUpdate(GasStation station, Petrol petrol) => DbApi.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
         public IActionResult OnGet()
         {
             PriceRange = (Context.Instance.Petrols.Min(p => p.Price), Context.Instance.Petrols.Max(p => p.Price));
-            Petrols = Utils.GetAllPetrols();
+            Petrols = DbApi.GetAllPetrols();
             Filter? filter = null;
             if (HttpContext.Request.Query["filter"].Count > 0)
                 filter = JsonSerializer.Deserialize<Filter>(HttpContext.Request.Query["filter"]!);
@@ -27,7 +27,7 @@ namespace PetrolTracker.Pages
             if (!long.TryParse(HttpContext.Request.Query["page"], out long page))
                 page = 0;
 
-            GasStations = DbManager.Utils.GetStations(filter, page, 100);
+            GasStations = DbApi.GetStations(filter, page, 100);
             
             return Page();
         }

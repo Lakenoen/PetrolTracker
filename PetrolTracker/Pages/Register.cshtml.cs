@@ -3,6 +3,7 @@ using PetrolTracker.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using DbManager;
 
 namespace PetrolTracker.Pages;
 
@@ -31,19 +32,28 @@ public class RegisterModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (await _userManager.FindByEmailAsync(Input.Email) is not null)
+        var existing = DbApi.FindUserByEmail(Input.Email);
+        if (existing is not null)
         {
             ErrorMessage = "Пользователь с таким email уже зарегистрирован";
             return Page();
         }
 
         var user = new AppUser { UserName = Input.UserName, Email = Input.Email };
+        var dbUser = new User
+        {
+            Username = user.UserName!,
+            Email = user.Email!
+        };
+
         var result = await _userManager.CreateAsync(user, Input.Password);
         if (!result.Succeeded)
         {
             ErrorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
             return Page();
         }
+
+        DbApi.TempPassStorage[dbUser.Email] = Input.Password;
 
         await _userManager.AddToRoleAsync(user, "User");
         var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);

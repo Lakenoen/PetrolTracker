@@ -3,6 +3,7 @@ using PetrolTracker.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using DbManager;
 
 namespace PetrolTracker.Pages;
 
@@ -63,6 +64,20 @@ public class ConfirmEmailModel : PageModel
         }
 
         ClearConfirmationCookies();
+
+        if(!DbApi.TempPassStorage.TryGetValue(user.Email!, out string? pass))
+        {
+            return BadRequest(new { message = "Пользователь не найден" });
+        }
+
+        var dbUser = new DbManager.User
+        {
+            Username = user.UserName!,
+            Email = user.Email!
+        };
+        DbApi.CreateHashPassword(dbUser, pass);
+        DbApi.AddUser(dbUser);
+
         return await IssueJwtAndRedirectAsync(user);
     }
 

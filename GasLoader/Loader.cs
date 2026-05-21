@@ -136,7 +136,10 @@ public class Loader
 
                     }
 
-                    _ctx.SaveChanges();
+                    lock(_ctx.Locker)
+                    {
+                        _ctx.SaveChanges();
+                    }
 
                     _logger?.LogInformation($"Page loaded, page: {p}");
                 }

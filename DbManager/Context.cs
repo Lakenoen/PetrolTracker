@@ -25,6 +25,7 @@ namespace DbManager
         public DbSet<GasStation> GasStations { get; set; }
         public DbSet<User> Users { get; set; }
 
+        public object Locker {get; init;} = new();
         private Context()
         {
             if(GlobalSettings.UpdateDB)

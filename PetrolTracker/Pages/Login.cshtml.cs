@@ -3,6 +3,7 @@ using PetrolTracker.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using DbManager;
 
 namespace PetrolTracker.Pages;
 
@@ -41,14 +42,18 @@ public class LoginModel : PageModel
     {
         if (!ModelState.IsValid) return Page();
 
+        var dbUser = DbApi.FindUserByEmail(Input.Email);
         var user = await _userManager.FindByEmailAsync(Input.Email);
+
         if (user is null || !await _userManager.CheckPasswordAsync(user, Input.Password))
         {
-            ErrorMessage = "Неверный email или пароль";
-            return Page();
+            if(dbUser is null || !DbApi.CheckPassword(dbUser, Input.Password)){
+                ErrorMessage = "Неверный email или пароль";
+                return Page();
+            }
         }
 
-        if (!user.EmailConfirmed)
+        if (user is not null && dbUser is null)
         {
             try
             {
@@ -66,8 +71,21 @@ public class LoginModel : PageModel
             return RedirectToPage("/ConfirmEmail", new { email = user.Email });
         }
 
-        var roles = await _userManager.GetRolesAsync(user);
-        var token = _jwt.GenerateToken(user, roles);
+        if(user is null && dbUser is not null)
+        {
+            user = new AppUser { UserName = dbUser.Username, Email = dbUser.Email};
+            var result = await _userManager.CreateAsync(user, Input.Password);
+            if (!result.Succeeded)
+            {
+                ErrorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+                return Page();
+            }
+            await _userManager.AddToRoleAsync(user, "User");
+        }
+
+        var roles = new List<string>();
+        roles.Add(dbUser!.Role);
+        var token = _jwt.GenerateToken(user!, roles);
 
         Response.Cookies.Append("access_token", token, new CookieOptions
         {
