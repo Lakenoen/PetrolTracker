@@ -30,12 +30,12 @@ public static class Utils
 					and ""Petrols"".""Price"" = ""GasStationPetrol"".""PetrolPrice""
                 {0} LIMIT {1} OFFSET {2}";
 
-    internal static List<dynamic> SqlDynamicExecute(string query, Func<DbDataReader,object> factory)
+    internal static List<dynamic> SqlDynamicExecute(Context ctx, string query, Func<DbDataReader,object> factory)
     {
         try{
-            using var command = Context.Instance.Database.GetDbConnection().CreateCommand();
+            using var command = ctx.Database.GetDbConnection().CreateCommand();
             command.CommandText = query;
-            Context.Instance.Database.OpenConnection();
+            ctx.Database.OpenConnection();
 
             var results = new List<dynamic>();
             using var reader = command.ExecuteReader();

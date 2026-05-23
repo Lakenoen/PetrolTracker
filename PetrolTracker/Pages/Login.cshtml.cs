@@ -13,17 +13,25 @@ public class LoginModel : PageModel
     private readonly JwtHelper _jwt;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<LoginModel> _logger;
-
+    private readonly Context _ctx;
+    private readonly IConfiguration _configuration;
     public LoginModel(
         UserManager<AppUser> userManager,
         JwtHelper jwt,
         IEmailSender emailSender,
-        ILogger<LoginModel> logger)
+        ILogger<LoginModel> logger,
+        IConfiguration configuration)
     {
+        _configuration = configuration;
         _userManager = userManager;
         _jwt = jwt;
         _emailSender = emailSender;
         _logger = logger;
+        _ctx = new Context(new Settings
+        {
+            UpdateDB = false,
+            ConnectionDB = _configuration["Dbconnect"]!
+        });
     }
 
     [BindProperty]
@@ -42,7 +50,7 @@ public class LoginModel : PageModel
     {
         if (!ModelState.IsValid) return Page();
 
-        var dbUser = DbApi.FindUserByEmail(Input.Email);
+        var dbUser = DbApi.FindUserByEmail(_ctx, Input.Email);
         var user = await _userManager.FindByEmailAsync(Input.Email);
 
         if (user is null || !await _userManager.CheckPasswordAsync(user, Input.Password))

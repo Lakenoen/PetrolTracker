@@ -13,17 +13,19 @@ public class ConfirmEmailModel : PageModel
     private readonly IEmailSender _emailSender;
     private readonly JwtHelper _jwt;
     private readonly ILogger<ConfirmEmailModel> _logger;
-
+    private readonly Context _ctx;
     public ConfirmEmailModel(
         UserManager<AppUser> userManager,
         IEmailSender emailSender,
         JwtHelper jwt,
-        ILogger<ConfirmEmailModel> logger)
+        ILogger<ConfirmEmailModel> logger,
+        Context ctx)
     {
         _userManager = userManager;
         _emailSender = emailSender;
         _jwt = jwt;
         _logger = logger;
+        _ctx = ctx;
     }
 
     [BindProperty]
@@ -76,7 +78,7 @@ public class ConfirmEmailModel : PageModel
             Email = user.Email!
         };
         DbApi.CreateHashPassword(dbUser, pass);
-        DbApi.AddUser(dbUser);
+        DbApi.AddUser(_ctx, dbUser);
 
         return await IssueJwtAndRedirectAsync(user);
     }

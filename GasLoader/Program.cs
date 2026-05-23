@@ -11,12 +11,17 @@ class Program
 
         try
         {
-            GlobalSettings.UpdateDB = bool.Parse(args[3]);
-            GlobalSettings.ConnectionDB = args[0];
+            Settings settings = new Settings
+            {
+                UpdateDB = bool.Parse(args[3]),
+                ConnectionDB = args[0]
+            };
             string mapApiKey = args[1];
             string from = args[2];
 
-            Loader loader = new Loader(DbManager.Context.Instance, mapApiKey, logger);
+            Context ctx = new Context(settings);
+
+            Loader loader = new Loader(ctx, mapApiKey, logger);
             switch (from.ToLower())
             {
                 case "russiabase": loader.LoadFromRussiabaseAsync(90); break;

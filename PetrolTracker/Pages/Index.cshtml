@@ -11,40 +11,42 @@
 
     <!-- Правая часть: фильтры + список -->
     <div class="side-panel">
-
+        <button class="open-filter-button">Фильтр</button>
         <!-- Карточка фильтров -->
-        <div class="filter-card">
-            <h3>⚙️ Фильтры</h3>
+        <div class="modal-overlay">
+            <div class="filter-card">
+                <h3>⚙️ Фильтры</h3>
 
-            <div class="form-group">
-                <label>Название АЗС</label>
-                <input type="text" id="filter-name" class="form-control" placeholder="Например: лукойл" />
-            </div>
+                <div class="form-group">
+                    <label>Название АЗС</label>
+                    <input type="text" id="filter-name" class="form-control" placeholder="Например: лукойл" />
+                </div>
 
-            <div class="form-group">
-                <label>Вид топлива</label>
-                <div id="filter-fuel" class="form-control row-direction-container">
-                    @{
-                        foreach(DbManager.Petrol petrol in Model.Petrols!){
-                            <button class="allow-fuels" data-fuel="@petrol.Name.ToLower()" data-price="@petrol.Price">
-                                <span class="fuel-name">@petrol.Name</span>
-                            </button>
+                <div class="form-group">
+                    <label>Вид топлива</label>
+                    <div id="filter-fuel" class="form-control row-direction-container">
+                        @{
+                            foreach(DbManager.Petrol petrol in Model.Petrols!){
+                                <button class="allow-fuels" data-fuel="@petrol.Name.ToLower()" data-price="@petrol.Price">
+                                    <span class="fuel-name">@petrol.Name</span>
+                                </button>
+                            }
                         }
-                    }
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label>Цена, ₽</label>
-                <div class="price-range">
-                    <input type="number" id="filter-price-min" class="form-control" placeholder="от" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.min"/>
-                    <input type="number" id="filter-price-max" class="form-control" placeholder="до" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.max"/>
+                <div class="form-group">
+                    <label>Цена, ₽</label>
+                    <div class="price-range">
+                        <input type="number" id="filter-price-min" class="form-control" placeholder="от" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.min"/>
+                        <input type="number" id="filter-price-max" class="form-control" placeholder="до" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.max"/>
+                    </div>
                 </div>
-            </div>
 
-            <div class="filter-actions">
-                <button id="filter-submit" class="btn-primary">Применить</button>
-                <button id="filter-reset" class="btn-secondary">Сбросить</button>
+                <div class="filter-actions">
+                    <button id="filter-submit" class="btn-primary">Применить</button>
+                    <button id="filter-reset" class="btn-secondary">Сбросить</button>
+                </div>
             </div>
         </div>
 
@@ -132,6 +134,16 @@
         });
     });
 
+
+    let overlay = document.querySelector('.modal-overlay');
+    document.querySelector('.open-filter-button').addEventListener('click', function(e){
+        overlay.style.display = 'flex';
+    });
+    overlay.addEventListener('click', function(e){
+        if (e.target === overlay)
+            overlay.style.display = 'none';
+    });
+
     // === Фильтры (клиентская сторона) ===
 
     document.querySelectorAll('.allow-fuels').forEach((el)=>{
@@ -199,17 +211,9 @@
             return;
 
         document.querySelector('.scroll_div').innerHTML = '';
-        fetch(window.location.origin + window.location.pathname, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json; charset=utf-8'
-            },
-            body: JSON.stringify(data)
-        }).then(response => {
-            if (response.redirected) {
-                window.location.href = response.url;
-            }
-        });
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('filter', JSON.stringify(data));
+        window.location.href = url.href;
     }
 
     function resetFilters() {

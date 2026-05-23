@@ -11,7 +11,7 @@ namespace DbManager;
 public static class DbApi
 {
     public static Utils.ProtectDict<string, string> TempPassStorage = new Utils.ProtectDict<string, string>();
-    public static List<GasStation> GetStations(Filter? filter, long page, long size)
+    public static List<GasStation> GetStations(Context ctx, Filter? filter, long page, long size)
     {
         List<GasStation> result = new List<GasStation>();
 
@@ -20,44 +20,49 @@ public static class DbApi
             where = DbManager.Utils.MakeSqlFromFilter(filter);
         
 
-        var ids = Utils.SqlDynamicExecute(string.Format(Utils.GasStationsRawSQL, where, size, page), reader =>
+        var ids = Utils.SqlDynamicExecute(ctx, string.Format(Utils.GasStationsRawSQL, where, size, page), reader =>
         {
             return reader.GetInt64(0);
         }).Distinct().ToList();
 
         foreach (long id in ids)
         {
-            GasStation station = Context.Instance.GasStations.Where(s => s.Id == id)
+            GasStation station = ctx.GasStations.Where(s => s.Id == id)
                 .Include(p => p.Petrols).ThenInclude(e => e.GasStationPetrols).First();
             result.Add(station);
         }
         return result;
     }
 
-    public static List<Petrol> GetAllPetrols()
+    public static List<Petrol> GetAllPetrols(Context ctx)
     {
-        return Context.Instance.Petrols
+        return ctx.Petrols
             .GroupBy(el => el.Name)
             .Select(g => new Petrol { Name = g.Key })
             .OrderBy(e => e.Name)
             .ToList();
+    }
+
+    public static (double min, double max) getPetrolPriceRange(Context ctx)
+    {
+        return (ctx.Petrols.Min(p => p.Price), ctx.Petrols.Max(p => p.Price));
     }
     public static DateTime GetUpdate(GasStation station, Petrol petrol)
     {
         return station.GasStationPetrols.Where(p => p.Petrol == petrol).ToList().First().Update!.Value;
     }
 
-    public static User? FindUserByName(string name)
+    public static User? FindUserByName(Context ctx, string name)
     {
-        var users = Context.Instance.Users.Where(u => u.Username == name).ToList();
+        var users = ctx.Users.Where(u => u.Username == name).ToList();
         if(users.Count() == 0)
             return null;
         return users.First();
     }
 
-    public static User? FindUserByEmail(string email)
+    public static User? FindUserByEmail(Context ctx, string email)
     {
-        var users = Context.Instance.Users.Where(u => u.Email == email).ToList();
+        var users = ctx.Users.Where(u => u.Email == email).ToList();
         if(users.Count() == 0)
             return null;
         return users.First();
@@ -80,12 +85,12 @@ public static class DbApi
         return externalHash == user.PasswordHash;
     }
 
-    public static void AddUser(User user)
+    public static void AddUser(Context ctx, User user)
     {
-        Context.Instance.Add(user);
-        lock (Context.Instance.Locker)
+        ctx.Add(user);
+        lock (ctx.Locker)
         {
-            Context.Instance.SaveChanges();
+            ctx.SaveChanges();
         }
     }
 

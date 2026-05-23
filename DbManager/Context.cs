@@ -11,30 +11,21 @@ namespace DbManager
 {
     public class Context : DbContext
     {
-        private static Context? _instance = null;
-        public static Context Instance
-        {
-            get
-            {
-                if( _instance == null )
-                    _instance = new Context();
-                return _instance;
-            }
-        }
         public DbSet<Petrol> Petrols { get; set; }
         public DbSet<GasStation> GasStations { get; set; }
         public DbSet<User> Users { get; set; }
-
+        public Settings Settings {get; init;}
         public object Locker {get; init;} = new();
-        private Context()
+        public Context(Settings settings)
         {
-            if(GlobalSettings.UpdateDB)
+            this.Settings = settings;
+            if(Settings.UpdateDB)
                 Database.EnsureDeleted();
             Database.EnsureCreated();
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-            => optionsBuilder.UseNpgsql(GlobalSettings.ConnectionDB);
+            => optionsBuilder.UseNpgsql(Settings.ConnectionDB);
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

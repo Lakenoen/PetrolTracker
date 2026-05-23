@@ -124,9 +124,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// === PetrolTracker: PostgreSQL через DbManager ===
-GlobalSettings.UpdateDB = false;
-
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

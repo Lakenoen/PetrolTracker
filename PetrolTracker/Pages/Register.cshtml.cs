@@ -12,15 +12,23 @@ public class RegisterModel : PageModel
     private readonly UserManager<AppUser> _userManager;
     private readonly IEmailSender _emailSender;
     private readonly ILogger<RegisterModel> _logger;
-
+    private readonly Context _ctx;
+    private readonly IConfiguration _configuration;
     public RegisterModel(
         UserManager<AppUser> userManager,
         IEmailSender emailSender,
-        ILogger<RegisterModel> logger)
+        ILogger<RegisterModel> logger,
+        IConfiguration configuration)
     {
+        _configuration = configuration;
         _userManager = userManager;
         _emailSender = emailSender;
         _logger = logger;
+        _ctx = new Context(new Settings
+        {
+            UpdateDB = false,
+            ConnectionDB = _configuration["Dbconnect"]!
+        });
     }
 
     [BindProperty]
@@ -32,7 +40,7 @@ public class RegisterModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var existing = DbApi.FindUserByEmail(Input.Email);
+        var existing = DbApi.FindUserByEmail(_ctx, Input.Email);
         if (existing is not null)
         {
             ErrorMessage = "Пользователь с таким email уже зарегистрирован";
