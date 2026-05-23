@@ -2,6 +2,7 @@
 @model PetrolTracker.Pages.IndexModel
 
 <meta charset="UTF-8">
+<link href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css" rel="stylesheet">
 <link href="/css/style.css" rel="stylesheet" type="text/css" />
 
 <div class="grid-container">
@@ -11,7 +12,9 @@
 
     <!-- Правая часть: фильтры + список -->
     <div class="side-panel">
-        <button class="open-filter-button">Фильтр</button>
+        <div class="row-direction-container">
+            <button class="open-filter-button">Фильтры</button>
+        </div>
         <!-- Карточка фильтров -->
         <div class="modal-overlay">
             <div class="filter-card">
@@ -19,7 +22,11 @@
 
                 <div class="form-group">
                     <label>Название АЗС</label>
-                    <input type="text" id="filter-name" class="form-control" placeholder="Например: лукойл" />
+                    <input type="text" id="filter-name" class="form-control" placeholder="Например: Лукойл" />
+                </div>
+                <div class="form-group">
+                    <label>Адрес</label>
+                    <input type="text" id="filter-address" class="form-control" placeholder="Например: ул Ленина" />
                 </div>
 
                 <div class="form-group">
@@ -37,9 +44,10 @@
 
                 <div class="form-group">
                     <label>Цена, ₽</label>
-                    <div class="price-range">
-                        <input type="number" id="filter-price-min" class="form-control" placeholder="от" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.min"/>
-                        <input type="number" id="filter-price-max" class="form-control" placeholder="до" min="@Model.PriceRange.min" max="@Model.PriceRange.max" value="@Model.PriceRange.max"/>
+                    <div class="row-direction-container">
+                        <span id="minVal">@Model.PriceRange.min</span>
+                        <div id="slider"></div>
+                        <span id="maxVal">@Model.PriceRange.max</span>
                     </div>
                 </div>
 
@@ -68,7 +76,30 @@
                                 <span class="fuel-name">@petrol.Name</span>
                                 <span class="fuel-price">@petrol.Price ₽</span>
                                 <span class="fuel-date">@Model.GetUpdate(el, petrol)</span>
+                                <div class="petrol-rating">
+                                    @{
+                                        var ratingPair = Model.GetPetrolRating(el, petrol);
+                                        for(int i = 0; i < 5; ++i){
+                                            if(ratingPair.rating >= i + 1){
+                                                <span class="rating-star" style="color: #fbbf24;" data-value="@i + 1">★</span>
+                                            }
+                                            else{
+                                                <span class="rating-star" data-value="@i">★</span>
+                                            }
+                                        }
+                                    }
+                                </div>
                             </div>
+                        }
+                    </div>
+                    <div class="station-rating">
+                        @for(int i = 0; i < 5; ++i){
+                            if(el.Rating >= i + 1){
+                                <span class="rating-star" style="color: #fbbf24;" data-value="@i + 1">★</span>
+                            }
+                            else{
+                                <span class="rating-star" data-value="@i">★</span>
+                            }
                         }
                     </div>
                 </div>
@@ -79,30 +110,24 @@
 </div>
 
 <script src="https://api-maps.yandex.ru/2.1/?apikey=107a0c84-45d3-407b-a236-9daa3692445c&load=package.full&lang=ru-RU" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
 
 <script>
-    function OnlyNum(e) {
-        // 1. Заменяем запятые на точки (удобно для мобильных клавиатур)
-        let value = this.value.replace(/,/g, '.');
-        
-        // 2. Удаляем все символы, кроме цифр и точек
-        value = value.replace(/[^0-9.]/g, '');
-        
-        // 3. Разрешаем только ОДНУ точку (удаляем последующие)
-        const parts = value.split('.');
-        if (parts.length > 2) {
-            value = parts[0] + '.' + parts.slice(1).join('');
-        }
-        
-        // 4. Запрещаем начинать ввод с точки
-        if (value.startsWith('.')) {
-            value = value.substring(1);
-        }
 
-        this.value = value;
-    }
-    document.getElementById('filter-price-min').addEventListener('input', OnlyNum);
-    document.getElementById('filter-price-max').addEventListener('input', OnlyNum);
+    // === фильтр цена ===
+    let minSpan = document.getElementById('minVal');
+    let maxSpan = document.getElementById('maxVal');
+    const slider = document.getElementById('slider');
+    noUiSlider.create(slider, {
+        start: [parseFloat(minSpan.innerHTML), parseFloat(maxSpan.innerHTML)],
+        connect: true,
+        step: 0.1,
+        range: { min: parseFloat(minSpan.innerHTML), max: parseFloat(maxSpan.innerHTML) }
+    });
+    slider.noUiSlider.on('update', (values) => {
+        minSpan.innerHTML = values[0];
+        maxSpan.innerHTML = values[1];
+    });
     
     // === Карта ===
     var currentPlacemark;
@@ -164,8 +189,9 @@
         };
 
         var nameFilter  = document.getElementById('filter-name').value.toLowerCase().trim();
-        var priceMin    = parseFloat(document.getElementById('filter-price-min').value) || 0;
-        var priceMax    = parseFloat(document.getElementById('filter-price-max').value) || 0;
+        var addressFilter = document.getElementById('filter-address').value.toLowerCase().trim();
+        var priceMin    = parseFloat(minSpan.innerHTML);
+        var priceMax    = parseFloat(maxSpan.innerHTML);
 
         priceFilter = {
                 Value : priceMin + '\t' + priceMax,
@@ -183,6 +209,16 @@
                 Type: "str"
 		    };
 		    data.Filters.push(stationName);
+        }
+
+        if(addressFilter){
+            stationAddr = {
+                Value : addressFilter,
+                Field : "GasStations.Address",
+                Op : "like",
+                Type: "str"
+		    };
+		    data.Filters.push(stationAddr);
         }
         
         (function (){

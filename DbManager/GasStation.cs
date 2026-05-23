@@ -25,7 +25,7 @@ public class GasStation
 
     [Required]
     public double Longitude { get; set; } = double.MinValue;
-    public int Rating { get; set; } = 0;
+    public float Rating { get; set; } = 0;
     public int Stars { get; set; } = 0;
     public List<Petrol> Petrols { get; set; } = new List<Petrol>();
     public List<GasStationPetrol> GasStationPetrols { get; set; } = new List<GasStationPetrol>();

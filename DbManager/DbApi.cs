@@ -11,6 +11,7 @@ namespace DbManager;
 public static class DbApi
 {
     public static Utils.ProtectDict<string, string> TempPassStorage = new Utils.ProtectDict<string, string>();
+
     public static List<GasStation> GetStations(Context ctx, Filter? filter, long page, long size)
     {
         List<GasStation> result = new List<GasStation>();
@@ -47,9 +48,23 @@ public static class DbApi
     {
         return (ctx.Petrols.Min(p => p.Price), ctx.Petrols.Max(p => p.Price));
     }
+
     public static DateTime GetUpdate(GasStation station, Petrol petrol)
     {
-        return station.GasStationPetrols.Where(p => p.Petrol == petrol).ToList().First().Update!.Value;
+        var links = station.GasStationPetrols.Where(p => p.Petrol == petrol).ToList();
+        if(links.Count() <= 0)
+            return DateTime.Now;
+
+        return links.First().Update!.Value;
+    }
+
+    public static (float rating, int stars) GetPetrolRating(GasStation station, Petrol petrol)
+    {
+        var links = station.GasStationPetrols.Where(p => p.Petrol == petrol).ToList();
+        if(links.Count() <= 0)
+            return (0, 0);
+
+        return (links.First().Rating, links.First().Stars);
     }
 
     public static User? FindUserByName(Context ctx, string name)

@@ -26,6 +26,8 @@ namespace PetrolTracker.Pages
                 ConnectionDB = _configuration["Dbconnect"]!
             });
         }
+
+        public (float rating, int stars) GetPetrolRating(GasStation station, Petrol petrol) => DbApi.GetPetrolRating(station, petrol);
         public string GetUpdate(GasStation station, Petrol petrol) => DbApi.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
         public IActionResult OnGet()
         {
