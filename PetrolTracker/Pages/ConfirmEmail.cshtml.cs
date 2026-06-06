@@ -14,18 +14,24 @@ public class ConfirmEmailModel : PageModel
     private readonly JwtHelper _jwt;
     private readonly ILogger<ConfirmEmailModel> _logger;
     private readonly Context _ctx;
+    private readonly IConfiguration _configuration;
     public ConfirmEmailModel(
         UserManager<AppUser> userManager,
         IEmailSender emailSender,
         JwtHelper jwt,
         ILogger<ConfirmEmailModel> logger,
-        Context ctx)
+        IConfiguration configuration)
     {
         _userManager = userManager;
         _emailSender = emailSender;
         _jwt = jwt;
         _logger = logger;
-        _ctx = ctx;
+        _configuration = configuration;
+        _ctx = new Context(new Settings
+        {
+            UpdateDB = false,
+            ConnectionDB = _configuration["Dbconnect"]!
+        });
     }
 
     [BindProperty]

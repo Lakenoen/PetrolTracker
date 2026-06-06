@@ -29,4 +29,7 @@ public class GasStation
     public int Stars { get; set; } = 0;
     public List<Petrol> Petrols { get; set; } = new List<Petrol>();
     public List<GasStationPetrol> GasStationPetrols { get; set; } = new List<GasStationPetrol>();
+
+    public List<User> Users {get;set;} = new List<User>();
+    public List<UserGasStation> UserGasStations {get;set;} = new List<UserGasStation>();
 }

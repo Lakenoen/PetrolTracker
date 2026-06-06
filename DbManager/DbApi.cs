@@ -5,12 +5,28 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using System.Runtime.CompilerServices;
 
 namespace DbManager;
 
 public static class DbApi
 {
     public static Utils.ProtectDict<string, string> TempPassStorage = new Utils.ProtectDict<string, string>();
+
+    public static GasStation? GetStationById(Context ctx, long id)
+    {
+        var stations = ctx.GasStations
+            .Where(s => s.Id == id)
+            .Include(s => s.Petrols)
+            .ThenInclude(s => s.GasStationPetrols)
+            .ThenInclude(s => s.UserPetrolRatings)
+            .ToList();
+
+        if(stations.Count() > 0)
+            return stations.First();
+
+        return null;
+    }
 
     public static List<GasStation> GetStations(Context ctx, Filter? filter, long page, long size)
     {
@@ -44,9 +60,23 @@ public static class DbApi
             .ToList();
     }
 
-    public static (double min, double max) getPetrolPriceRange(Context ctx)
+    public static (double min, double max) getPetrolPriceRange(Context ctx, params string[] petrols)
     {
-        return (ctx.Petrols.Min(p => p.Price), ctx.Petrols.Max(p => p.Price));
+        if(petrols.Count() <= 0)
+            return (ctx.Petrols.Min(p => p.Price), ctx.Petrols.Max(p => p.Price));
+
+        double min = ctx.Petrols.Max(p => p.Price);
+        double max = ctx.Petrols.Min(p => p.Price);
+        foreach(var pertrol in petrols){
+            double localMin = ctx.Petrols.Where(p => p.Name == pertrol).Min(p => p.Price);
+            double localMax = ctx.Petrols.Where(p => p.Name == pertrol).Max(p => p.Price);
+            if( localMin < min )
+                min = localMin;
+            if( localMin < min )
+                max = localMax;
+        }
+
+        return(min, max);
     }
 
     public static DateTime GetUpdate(GasStation station, Petrol petrol)
@@ -103,10 +133,31 @@ public static class DbApi
     public static void AddUser(Context ctx, User user)
     {
         ctx.Add(user);
-        lock (ctx.Locker)
-        {
-            ctx.SaveChanges();
-        }
+        ctx.Save();
+    }
+    public static bool SetPetrolStars(Context ctx, User user, Petrol petrol, GasStation station, int rating)
+    {
+        var s_p = petrol.GasStationPetrols.Where(p => p.GasStationId == station.Id).ToList().First();
+        if(user.UserPetrolRatings.Where(p => p.UserId == user.Id && p.GasStationPetrolId == s_p.Id).ToList().Count() != 0)
+            return false;
+        
+        s_p.Stars += 1;
+        s_p.Rating = (s_p.Rating + rating) / s_p.Stars;
+        user.UserPetrolRatings.Add(new UserPetrolRating {User = user, GasStationPetrol = s_p});
+        ctx.Save();
+        return true;
+    }
+
+    public static bool SetStationStars(Context ctx, User user, GasStation station, int rating)
+    {
+        if(user.UserGasStations.Where(p => p.UserId == user.Id && p.GasStationId == station.Id).ToList().Count() != 0)
+            return false;
+        
+        station.Stars += 1;
+        station.Rating = (station.Rating + rating) / station.Stars;
+        user.UserGasStations.Add(new UserGasStation {User = user, GasStation = station});
+        ctx.Save();
+        return true;
     }
 
 }

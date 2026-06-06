@@ -50,6 +50,22 @@
                         <span id="maxVal">@Model.PriceRange.max</span>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Рэйтинг АЗС</label>
+                    <div class="row-direction-container">
+                        <span id="minValRatingStation">0</span>
+                        <div id="slider-station" class="slider"></div>
+                        <span id="maxValRatingStation">5</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Рэйтинг топлива</label>
+                    <div class="row-direction-container">
+                        <span id="minValRatingPetrol">0</span>
+                        <div id="slider-petrol" class="slider"></div>
+                        <span id="maxValRatingPetrol">5</span>
+                    </div>
+                </div>
 
                 <div class="filter-actions">
                     <button id="filter-submit" class="btn-primary">Применить</button>
@@ -92,15 +108,19 @@
                             </div>
                         }
                     </div>
-                    <div class="station-rating">
-                        @for(int i = 0; i < 5; ++i){
-                            if(el.Rating >= i + 1){
-                                <span class="rating-star" style="color: #fbbf24;" data-value="@i + 1">★</span>
+                    <div class="row-direction-container">
+                        <div class="station-rating">
+                            @for(int i = 0; i < 5; ++i){
+                                if(el.Rating >= i + 1){
+                                    <span class="rating-star" style="color: #fbbf24;" data-value="@i + 1">★</span>
+                                }
+                                else{
+                                    <span class="rating-star" data-value="@i">★</span>
+                                }
                             }
-                            else{
-                                <span class="rating-star" data-value="@i">★</span>
-                            }
-                        }
+                        </div>
+                        <span id="rating-count">Оценок: @el.Stars</span>
+                        <button id="station-page-button" onclick="window.location.href = window.location.origin + '/info' + '?id=@el.Id';"> Подробнее </button>
                     </div>
                 </div>
             }
@@ -112,150 +132,4 @@
 <script src="https://api-maps.yandex.ru/2.1/?apikey=107a0c84-45d3-407b-a236-9daa3692445c&load=package.full&lang=ru-RU" type="text/javascript"></script>
 <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
 
-<script>
-
-    // === фильтр цена ===
-    let minSpan = document.getElementById('minVal');
-    let maxSpan = document.getElementById('maxVal');
-    const slider = document.getElementById('slider');
-    noUiSlider.create(slider, {
-        start: [parseFloat(minSpan.innerHTML), parseFloat(maxSpan.innerHTML)],
-        connect: true,
-        step: 0.1,
-        range: { min: parseFloat(minSpan.innerHTML), max: parseFloat(maxSpan.innerHTML) }
-    });
-    slider.noUiSlider.on('update', (values) => {
-        minSpan.innerHTML = values[0];
-        maxSpan.innerHTML = values[1];
-    });
-    
-    // === Карта ===
-    var currentPlacemark;
-    var map;
-
-    ymaps.ready(function () {
-        map = new ymaps.Map("map", {
-            center: [55.751574, 37.573856],
-            zoom: 10
-        });
-    });
-
-    // Клик по карточке — метка на карте
-    document.querySelectorAll('.GasStation').forEach(function (card) {
-        card.addEventListener('click', function () {
-            document.querySelectorAll('.GasStation').forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-
-            var loc = this.querySelector('.location').innerText;
-            ymaps.geocode(loc).then(function (res) {
-                var firstGeoObject = res.geoObjects.get(0);
-                var coordinates = firstGeoObject.geometry.getCoordinates();
-
-                if (currentPlacemark) map.geoObjects.remove(currentPlacemark);
-                currentPlacemark = new ymaps.Placemark(coordinates);
-                map.geoObjects.add(currentPlacemark);
-                map.setCenter(coordinates, 14, { duration: 500 });
-            });
-        });
-    });
-
-
-    let overlay = document.querySelector('.modal-overlay');
-    document.querySelector('.open-filter-button').addEventListener('click', function(e){
-        overlay.style.display = 'flex';
-    });
-    overlay.addEventListener('click', function(e){
-        if (e.target === overlay)
-            overlay.style.display = 'none';
-    });
-
-    // === Фильтры (клиентская сторона) ===
-
-    document.querySelectorAll('.allow-fuels').forEach((el)=>{
-        el.addEventListener('click', (e)=> {
-            if(!el.classList.contains('allow-fuels-active'))
-                el.classList = ['allow-fuels-active'];
-            else
-                el.classList = ['allow-fuels'];
-        });
-    });
-
-    function applyFilters() {
-        const data = {
-            Gop: 'and',
-            Filters: [
-                
-            ]
-        };
-
-        var nameFilter  = document.getElementById('filter-name').value.toLowerCase().trim();
-        var addressFilter = document.getElementById('filter-address').value.toLowerCase().trim();
-        var priceMin    = parseFloat(minSpan.innerHTML);
-        var priceMax    = parseFloat(maxSpan.innerHTML);
-
-        priceFilter = {
-                Value : priceMin + '\t' + priceMax,
-                Field : "Petrols.Price",
-                Op : "between",
-                Type: "num"
-		    };
-        data.Filters.push(priceFilter);
-
-        if(nameFilter){
-            stationName = {
-                Value : nameFilter,
-                Field : "GasStations.Name",
-                Op : "like",
-                Type: "str"
-		    };
-		    data.Filters.push(stationName);
-        }
-
-        if(addressFilter){
-            stationAddr = {
-                Value : addressFilter,
-                Field : "GasStations.Address",
-                Op : "like",
-                Type: "str"
-		    };
-		    data.Filters.push(stationAddr);
-        }
-        
-        (function (){
-            petrolFilter = {
-                Gop: 'or',
-                Filters: [
-
-                ]
-            };
-
-            document.querySelectorAll('.allow-fuels-active').forEach((allowFuel)=>{
-                let fuelName = allowFuel.querySelector(".fuel-name").innerText;
-                petrolFilter.Filters.push({
-                    Value : fuelName,
-                    Field : "Petrols.Name",
-                    Op : "equal",
-                    Type: "str"
-                });
-            });
-
-            if(petrolFilter.Filters.length > 0)
-                data.Filters.push(petrolFilter);
-        })();
-
-        if(data.Filters.length == 0)
-            return;
-
-        document.querySelector('.scroll_div').innerHTML = '';
-        const url = new URL(window.location.origin + window.location.pathname);
-        url.searchParams.set('filter', JSON.stringify(data));
-        window.location.href = url.href;
-    }
-
-    function resetFilters() {
-        window.location.href = window.location.origin + window.location.pathname;
-    }
-
-    document.getElementById('filter-submit').addEventListener('click', applyFilters);
-    document.getElementById('filter-reset').addEventListener('click', resetFilters);
-</script>
+<script src="/js/Index.js"></script>

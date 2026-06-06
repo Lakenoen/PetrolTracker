@@ -31,6 +31,13 @@ namespace PetrolTracker.Pages
         public string GetUpdate(GasStation station, Petrol petrol) => DbApi.GetUpdate(station, petrol).ToString("dd/MM/yyyy");
         public IActionResult OnGet()
         {
+            if(HttpContext.Request.Query["petrols"].Count > 0)
+            {
+                var range = DbApi.getPetrolPriceRange(_ctx, HttpContext.Request.Query["petrols"].ToArray()!);
+                return Content(string.Format("{min: {0}, max: {1}}", range.min, range.max), "application/json");
+            }
+
+
             PriceRange = DbApi.getPetrolPriceRange(_ctx);
             Petrols = DbApi.GetAllPetrols(_ctx);
             Filter? filter = null;

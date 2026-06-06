@@ -131,7 +131,7 @@ public class Loader
 
                             var upd = DateTime.Parse(update);
                             upd = DateTime.SpecifyKind(upd, DateTimeKind.Utc);
-                            station.GasStationPetrols.Add(new GasStationPetrol { Petrol = petrol, Update = upd });
+                            station.GasStationPetrols.Add(new GasStationPetrol { Petrol = petrol, GasStation = station, Update = upd });
                         }
 
                     }

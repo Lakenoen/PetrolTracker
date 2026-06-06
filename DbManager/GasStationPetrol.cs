@@ -7,15 +7,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DbManager;
 
-[PrimaryKey(nameof(GasStationId), nameof(PetrolName), nameof(PetrolPrice))]
 public class GasStationPetrol
 {
+    public long Id {get;set;}
     public long GasStationId { get; set; }
-    public GasStation? GasStation { get; set; }
+    public required GasStation GasStation { get; set; }
 
     public string PetrolName { get; set; } = string.Empty;
     public double PetrolPrice { get; set; } = double.MinValue;
-    public Petrol? Petrol { get; set; }
+    public required Petrol Petrol { get; set; }
+
+    public List<User> Users {get;set;} = new List<User>();
+    public List<UserPetrolRating> UserPetrolRatings { get; set; } = new List<UserPetrolRating>();
 
     public DateTime? Update { get; set; } = null;
     public float Rating { get; set; } = 0;
