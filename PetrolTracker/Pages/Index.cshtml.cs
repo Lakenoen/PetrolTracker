@@ -15,6 +15,8 @@ namespace PetrolTracker.Pages
         public List<Petrol>? Petrols { get; set; } = null;
         public (double min, double max) PriceRange {get;set;} = (0,100);
         
+        public string ApiKey {get; init;} = "70f7fd48-a331-4c6e-94c4-32c7b8671c91";
+        private readonly Geocoder _geocoder;
         private readonly Context _ctx;
         private readonly IConfiguration _configuration;
         public IndexModel(IConfiguration configuration)
@@ -25,6 +27,8 @@ namespace PetrolTracker.Pages
                 UpdateDB = false,
                 ConnectionDB = _configuration["Dbconnect"]!
             });
+
+            _geocoder = new Geocoder(ApiKey);
         }
 
         public (float rating, int stars) GetPetrolRating(GasStation station, Petrol petrol) => DbApi.GetPetrolRating(station, petrol);

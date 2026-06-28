@@ -12,9 +12,7 @@ public class GasStationPetrol
     public long Id {get;set;}
     public long GasStationId { get; set; }
     public required GasStation GasStation { get; set; }
-
-    public string PetrolName { get; set; } = string.Empty;
-    public double PetrolPrice { get; set; } = double.MinValue;
+    public long PetrolId {get;set;}
     public required Petrol Petrol { get; set; }
 
     public List<User> Users {get;set;} = new List<User>();

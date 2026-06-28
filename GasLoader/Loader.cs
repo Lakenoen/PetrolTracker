@@ -5,8 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DbManager;
-using Geocoding.Yandex;
-using Geocoding;
 using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
 using OpenQA.Selenium.BiDi.Script;
@@ -19,12 +17,13 @@ public class Loader
     private readonly Context _ctx;
     private readonly ChromeDriver _driver;
     private readonly ILogger? _logger = null;
-    private readonly IGeocoder geocoder;
+    private readonly Geocoder _geocoder;
 
     public int Delay { get; set; } = 2000;
     public Loader(Context ctx, string mapApiKey, ILogger? logger)
     {
-        geocoder = new YandexGeocoder(mapApiKey);
+        _geocoder = new Geocoder(mapApiKey);
+
         this._logger = logger;
         this._ctx = ctx;
         ChromeOptions options = new ChromeOptions();
@@ -36,15 +35,12 @@ public class Loader
 
     private double[] GetCoord(string address)
     {
-        IEnumerable<Address> addresses = geocoder.GeocodeAsync(address).Result;
+        var coords = _geocoder.GetCoord(address);
 
-        if (addresses.Count() <= 0)
+        if (coords.latitude == 0 && coords.longitude == 0)
             throw new ApplicationException("Addresses is empty");
 
-        var coord = new double[2];
-        coord[0] = addresses.First().Coordinates.Latitude;
-        coord[1] = addresses.First().Coordinates.Longitude;
-        return coord;
+        return new double[2]{coords.latitude, coords.longitude};
     }
 
     private void GoToPageRussiabase(int region, int page)
@@ -121,17 +117,21 @@ public class Loader
 
                         for (int i = 0; i < names.Count; i++)
                         {
-                            Petrol? petrol = _ctx.Petrols.Find(names[i], prices[i]);
-
-                            if (petrol == null)
+                            var petrls = _ctx.Petrols.Where( p => p.Name == names[i] && p.Price == prices[i]).ToList();
+                            Petrol? petrol = null;
+                            if (petrls.Count == 0)
                             {
                                 petrol = new Petrol { Name = names[i], Price = prices[i]};
                                 _ctx.Petrols.Add(petrol);
                             }
+                            else
+                            {
+                                petrol = petrls.First();
+                            }
 
                             var upd = DateTime.Parse(update);
                             upd = DateTime.SpecifyKind(upd, DateTimeKind.Utc);
-                            station.GasStationPetrols.Add(new GasStationPetrol { Petrol = petrol, GasStation = station, Update = upd });
+                            station.GasStationPetrols.Add(new GasStationPetrol { Petrol = petrol!, GasStation = station, Update = upd });
                         }
 
                     }
@@ -146,6 +146,7 @@ public class Loader
                 catch (Exception ex)
                 {
                     _logger?.LogWarning(ex.Message);
+                    _logger?.LogWarning(ex.InnerException?.Message);
                 }
 
                 if(p + 1 <= lastPage)

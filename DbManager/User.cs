@@ -28,6 +28,9 @@ public class User
 
     public List<GasStation> GasStations {get;set;} = new List<GasStation>();
     public List<UserGasStation> UserGasStations {get;set;} = new List<UserGasStation>();
-    
+    public double Trust {get;set;} = 0.0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public double LiterPer100km { get;set; } = 7.0;
+    public double DriveType { get;set; } = 0.5;
+    public double[] PreferenceVector { get;set; } = new double[4];
 }

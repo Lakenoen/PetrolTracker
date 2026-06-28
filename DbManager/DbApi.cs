@@ -62,21 +62,27 @@ public static class DbApi
 
     public static (double min, double max) getPetrolPriceRange(Context ctx, params string[] petrols)
     {
-        if(petrols.Count() <= 0)
-            return (ctx.Petrols.Min(p => p.Price), ctx.Petrols.Max(p => p.Price));
+        try{
+            if(petrols.Count() <= 0)
+                return (ctx.Petrols.Min(p => p.Price), ctx.Petrols.Max(p => p.Price));
 
-        double min = ctx.Petrols.Max(p => p.Price);
-        double max = ctx.Petrols.Min(p => p.Price);
-        foreach(var pertrol in petrols){
-            double localMin = ctx.Petrols.Where(p => p.Name == pertrol).Min(p => p.Price);
-            double localMax = ctx.Petrols.Where(p => p.Name == pertrol).Max(p => p.Price);
-            if( localMin < min )
-                min = localMin;
-            if( localMin < min )
-                max = localMax;
+            double min = ctx.Petrols.Max(p => p.Price);
+            double max = ctx.Petrols.Min(p => p.Price);
+            foreach(var pertrol in petrols){
+                double localMin = ctx.Petrols.Where(p => p.Name == pertrol).Min(p => p.Price);
+                double localMax = ctx.Petrols.Where(p => p.Name == pertrol).Max(p => p.Price);
+                if( localMin < min )
+                    min = localMin;
+                if( localMin < min )
+                    max = localMax;
+            }
+
+            return(min, max);
         }
-
-        return(min, max);
+        catch
+        {
+            return (0,0);
+        }
     }
 
     public static DateTime GetUpdate(GasStation station, Petrol petrol)
@@ -99,7 +105,7 @@ public static class DbApi
 
     public static User? FindUserByName(Context ctx, string name)
     {
-        var users = ctx.Users.Where(u => u.Username == name).ToList();
+        var users = ctx.Users.Include(u => u.UserGasStations).Where(u => u.Username == name).ToList();
         if(users.Count() == 0)
             return null;
         return users.First();
@@ -138,26 +144,163 @@ public static class DbApi
     public static bool SetPetrolStars(Context ctx, User user, Petrol petrol, GasStation station, int rating)
     {
         var s_p = petrol.GasStationPetrols.Where(p => p.GasStationId == station.Id).ToList().First();
-        if(user.UserPetrolRatings.Where(p => p.UserId == user.Id && p.GasStationPetrolId == s_p.Id).ToList().Count() != 0)
-            return false;
+        var upr = user.UserPetrolRatings.Where(p => p.UserId == user.Id && p.GasStationPetrolId == s_p.Id).ToList();
+        if(upr.Count() != 0)
+        {
+            upr.First().Rating = rating;
+        }
+        else
+        {
+            s_p.Stars += 1;
+            user.UserPetrolRatings.Add(new UserPetrolRating {User = user, GasStationPetrol = s_p, Rating = rating});
+        }
+
+        Task.Run(async ()=> {
+            await ctx.Calculator.CalcPetrolRating(s_p);
+        });
         
-        s_p.Stars += 1;
-        s_p.Rating = (s_p.Rating + rating) / s_p.Stars;
-        user.UserPetrolRatings.Add(new UserPetrolRating {User = user, GasStationPetrol = s_p});
         ctx.Save();
         return true;
     }
 
     public static bool SetStationStars(Context ctx, User user, GasStation station, int rating)
     {
-        if(user.UserGasStations.Where(p => p.UserId == user.Id && p.GasStationId == station.Id).ToList().Count() != 0)
-            return false;
+        var us = user.UserGasStations.Where(p => p.UserId == user.Id && p.GasStationId == station.Id).ToList();
+        if(us.Count() != 0)
+        {
+            us.First().Rating = rating;
+        }
+        else
+        {
+            station.Stars += 1;
+            user.UserGasStations.Add(new UserGasStation {User = user, GasStation = station, CreationTimeRating = DateTime.UtcNow});
+        }
+
+        Task.Run(async ()=> {
+            await ctx.Calculator.CalcStationRating(station);
+        });
         
-        station.Stars += 1;
-        station.Rating = (station.Rating + rating) / station.Stars;
-        user.UserGasStations.Add(new UserGasStation {User = user, GasStation = station});
         ctx.Save();
         return true;
+    }
+
+    public static float GetUserStationRating(Context _ctx, User user, GasStation station)
+    {
+        var usr = _ctx.Users.Where(u => u.Id == user.Id).Include(e => e.UserGasStations).Include(e => e.GasStations).ToList().First();
+        var res = usr.UserGasStations.Where(e => e.GasStation.Id == station.Id).ToList();
+        if(res.Count == 0)
+            return 0.0f;
+        
+        return res.First().Rating;
+    }
+
+    public static float GetUserPetrolRating(Context _ctx, User user, GasStation st, Petrol petrol)
+    {
+        var petrols = st.GasStationPetrols.Where(e => e.Id == petrol.Id).ToList();
+        if(petrols.Count == 0)
+            return 0.0f;
+        
+        var res = user.UserPetrolRatings.Where(e => e.GasStationPetrol.Id == petrols.First().Id).ToList();
+        if(res.Count == 0)
+            return 0.0f;
+        
+        return res.First().Rating;
+    }
+
+    public static void SetComment(Context ctx, User user, GasStation st, string text)
+    {
+        var ugs = user.UserGasStations.Where(p => p.UserId == user.Id && p.GasStationId == st.Id).ToList();
+        Comment? comment = null;
+        if(ugs.Count == 0)
+        {
+            UserGasStation? nugs = null;
+            user.UserGasStations.Add(nugs = new UserGasStation {User = user, GasStation = st, CreationTimeRating = DateTime.UtcNow});
+            ctx.Comments.Add(comment = new Comment{Text = text, Station = nugs});
+            nugs.Comments.Add(comment);
+            ctx.Save();
+            return;
+        }
+
+        ctx.Comments.Add(comment = new Comment{Text = text, UserId = ugs.First().UserId, GasStationId = ugs.First().GasStationId});
+        ctx.Save();
+    }
+
+    public static List<Comment> GetComments(Context ctx, GasStation st)
+    {
+        var station = ctx.GasStations.Where(s => s.Id == st.Id).Include(s => s.UserGasStations).ThenInclude(ugs => ugs.Comments).ToList();
+        if(station.Count == 0)
+            throw new ApplicationException("GasStation is not exist");
+
+        List<Comment> res = new List<Comment>();
+
+        foreach(var gs in station.First().UserGasStations)
+        {
+            foreach(var comment in gs.Comments)
+            {
+                res.Add(comment);
+            }
+        }
+
+        return res;
+    }
+
+
+    const short WaitHours = 5;
+    public static void SetMightPetrol(Context ctx, User user, GasStation st, string petrolName, double? petrolPrice, bool isExist)
+    {
+
+        var ugsl = user.UserGasStations.Where(p => p.UserId == user.Id && p.GasStationId == st.Id).ToList();
+        UserGasStation? ugs = null;
+        if(ugsl.Count == 0)
+            user.UserGasStations.Add(ugs = new UserGasStation {User = user, GasStation = st, CreationTimePetrol = DateTime.UtcNow});
+        else
+            ugs = ugsl.First();
+
+    // if( (DateTime.UtcNow - ugs.CreationTimePetrol).Hours < WaitHours )
+    //     return; //TODO
+
+        if(petrolPrice is null || !isExist)
+        {
+            foreach( var p in st.Petrols.Where(p => p.Name == petrolName).ToList())
+            {
+                p.MightPetrols.Add(new MightPetrol{ IsExist = isExist});
+                ugs.Petrols.Add(p);
+            }
+            ctx.Save();
+            return;
+        }
+
+        var petrols = st.Petrols.Where(p => p.Name == petrolName).ToList();
+        if(petrols.Count() > 0)
+        {
+            petrols.First().MightPetrols.Add(new MightPetrol{ IsExist = isExist, Price = petrolPrice.Value});
+            ugs.Petrols.Add(petrols.First());
+            ctx.Save();
+            return;
+        }
+
+        return;
+
+    }
+
+    public static List<Petrol> GetMightPetrols(Context ctx, GasStation st)
+    {
+        var station = ctx.GasStations.Where(s => s.Id == st.Id).Include(s => s.UserGasStations).ThenInclude(ugs => ugs.Petrols).ToList();
+        if(station.Count == 0)
+            throw new ApplicationException("GasStation is not exist");
+
+        List<Petrol> res = new List<Petrol>();
+
+        foreach(var gs in station.First().UserGasStations)
+        {
+            foreach(var petrol in gs.Petrols)
+            {
+                if(petrol is null) continue;
+                res.Add(petrol);
+            }
+        }
+
+        return res;
     }
 
 }

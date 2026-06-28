@@ -10,7 +10,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\DbManager\DbManager.csproj" />
 		<PackageReference Include="Selenium.WebDriver" Version="4.41.0" />
-		<PackageReference Include="Yandex.Geocoding" Version="1.0.0" />
 
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.3" />

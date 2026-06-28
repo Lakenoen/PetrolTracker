@@ -13,6 +13,7 @@ namespace DbManager
         public required User User {get;set;}
         public long GasStationPetrolId {get;set;}
         public required GasStationPetrol GasStationPetrol {get;set;}
-        public DateTime CreationTime {get;set;} = DateTime.Now;
+        public int Rating {get;set;} = 0;
+        public DateTime CreationTime {get;set;} = DateTime.UtcNow;
     }
 }

@@ -26,8 +26,7 @@ public static class Utils
 
     internal static string GasStationsRawSQL = @"SELECT * FROM ""GasStations""
                 left join ""GasStationPetrol"" on ""GasStations"".""Id"" = ""GasStationPetrol"".""GasStationId""
-                left join ""Petrols"" on ""Petrols"".""Name"" = ""GasStationPetrol"".""PetrolName""
-					and ""Petrols"".""Price"" = ""GasStationPetrol"".""PetrolPrice""
+                left join ""Petrols"" on ""Petrols"".""Id"" = ""GasStationPetrol"".""PetrolId""
                 {0} LIMIT {1} OFFSET {2}";
 
     internal static List<dynamic> SqlDynamicExecute(Context ctx, string query, Func<DbDataReader,object> factory)

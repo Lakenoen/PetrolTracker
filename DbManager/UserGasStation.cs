@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Net.Cache;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +15,10 @@ namespace DbManager
         public required User User {get;set;}
         public long GasStationId {get;set;}
         public required GasStation GasStation {get;set;}
-        public DateTime CreationTime {get;set;} = DateTime.Now;
+        public int Rating {get;set;} = 0;
+        public DateTime CreationTimeRating {get;set;}
+        public DateTime CreationTimePetrol {get;set;}
+        public List<Comment> Comments {get;set;} =  new List<Comment>();
+        public List<Petrol> Petrols {get;set;} = new List<Petrol>();
     }
 }

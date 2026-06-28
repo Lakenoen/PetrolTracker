@@ -132,4 +132,14 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 
+//Start and close calc cycle
+CancellationTokenSource source = new CancellationTokenSource();
+Task t = Calculator.Proccess(builder.Configuration["Dbconnect"]!,source);
+var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+lifetime.ApplicationStopping.Register(() =>
+{
+    source.Cancel();
+    t.Wait();
+});
+
 app.Run();

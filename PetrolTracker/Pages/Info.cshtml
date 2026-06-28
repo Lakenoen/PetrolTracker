@@ -2,152 +2,523 @@
 @model PetrolTracker.Pages.Info
 @{
     ViewData["Title"] = "Info";
+    Layout = null;
 }
 
-<link href="/css/general.css" rel="stylesheet" type="text/css" />
-<link href="/css/info.css" rel="stylesheet" type="text/css" />
+<meta charset="UTF-8">
+<title>@ViewData["Title"]</title>
+<style>
+    * {
+        box-sizing: border-box;
+    }
 
-<div class="global-container">
-    <div class="column-direction card-width">
-            <span>Заправка</span>
-    </div>
-    <div class="row-direction container-width container-height">
-        <div class="column-direction card-height card-width">
-            <div class="column-direction container-width">
-                <span>Оценить</span>
-            </div>
-            <div class="column-direction container-width container-height scroll-y">
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
+    html {
+        height: 100% !important;
+        min-height: 100% !important;
+        overflow-y: scroll !important;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f2f5;
+        min-height: 100vh;
+        height: auto;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        padding: 0;
+        margin: 0;
+    }
+
+    .main {
+        width: 70vw;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+        min-height: 100vh;
+        height: auto;
+        background: transparent;
+        display: block;
+    }
+
+    .navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 24px;
+        background: #1a1a2e;
+        color: #fff;
+        height: 52px;
+        flex-shrink: 0;
+    }
+
+    .navbar-brand {
+        color: #fff;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .navbar-user {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 14px;
+    }
+
+    .btn-logout {
+        padding: 5px 14px;
+        background: #e74c3c;
+        color: #fff;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 13px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-logout:hover {
+        background: #c0392b;
+    }
+
+    .container {
+        max-width: 1100px;
+        margin: 24px auto;
+        padding: 0 16px;
+        width: 100%;
+        flex: 1;
+    }
+
+    .location-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+        margin-bottom: 24px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .location-info h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a2e;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .location-address {
+        font-size: 16px;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .location-badge {
+        background: #eef2ff;
+        color: #4a90e2;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .rating-section {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .rating-label {
+        font-weight: 700;
+        font-size: 16px;
+        color: #1a1a2e;
+    }
+
+    .station-rating {
+        display: flex;
+        gap: 8px;
+        font-size: 32px;
+        cursor: pointer;
+    }
+
+    .rating-star {
+        color: #d1d5db;
+        transition: color 0.2s ease;
+    }
+
+    .rating-star.filled {
+        color: #fbbf24;
+    }
+
+    .rating-value {
+        font-weight: 700;
+        font-size: 18px;
+        color: #1a1a2e;
+        margin-left: 8px;
+    }
+
+    .fuels-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+        gap: 2rem;
+        margin-top: 0.5rem;
+    }
+
+    .fuel-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .fuel-card:hover {
+        box-shadow: 0 8px 30px rgba(74, 144, 226, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .fuel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .fuel-name {
+        font-weight: 700;
+        font-size: 18px;
+        text-transform: uppercase;
+        color: #1a1a2e;
+        background: #f0f2f5;
+        padding: 6px 14px;
+        border-radius: 20px;
+    }
+
+    .fuel-price {
+        font-size: 20px;
+        font-weight: 700;
+        color: #4a90e2;
+    }
+
+    .fuel-meta {
+        font-size: 13px;
+        color: #888;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .petrol-rating {
+        display: flex;
+        gap: 1rem;
+        font-size: 24px;
+        cursor: pointer;
+        align-items: center;
+    }
+
+    .petrol-rating .rating-star {
+        transition: color 0.2s ease;
+    }
+
+    .petrol-rating .rating-star.filled {
+        color: #fbbf24;
+    }
+
+    .small-rating-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    hr {
+        border: 0.5px solid #eee;
+        margin: 8px 0;
+    }
+
+    .btn-back {
+        background: none;
+        border: 1px solid #ddd;
+        padding: 8px 16px;
+        border-radius: 8px;
+        color: #333;
+        font-weight: 500;
+        cursor: pointer;
+        margin-bottom: 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+
+    .btn-back:hover {
+        background: #f0f2f5;
+    }
+
+    .rate-form {
+        display: inline;
+    }
+
+    .rate-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-size: inherit;
+        color: inherit;
+    }
+
+    @@media (max-width: 640px) {
+        .location-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .rating-section {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    .station-container {
+        display: flex;
+        flex-direction: column;
+        border-radius: 1rem;
+        background: white;
+        padding: 1rem;
+    }
+
+    .current-reting-container {
+        display: flex;
+        flex-direction: row;
+        border-radius: 1rem;
+    }
+
+    #comment-block {
+        display: flex;
+        flex-direction: column;
+        border-radius: 1rem;
+        padding: 2rem 1rem 1rem 2rem;
+        margin: 2rem 2rem;
+        box-shadow: 0 0.2rem 1rem rgba(0, 0, 0, 0.08);
+        background: white;
+    }
+
+    #input-block {
+        display: flex;
+        flex-direction: row;
+        border-radius: 1rem;
+        margin: 1rem 1rem;
+    }
+
+    #comment-text-block {
+        display: flex;
+        flex-direction: column;
+        border-radius: 1rem;
+        margin: 1rem 1rem;
+        padding: 1rem;
+    }
+
+    #comment-slider {
+        min-height: 5rem;
+        max-height: 10rem;
+        overflow-y: auto; 
+    }
+
+    .overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        ackground-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+
+    .overlay.active {
+        display: flex;
+    }
+
+    .petrol-block {
+        display: flex;
+        flex-direction: column;
+        border-radius: 1rem;
+        padding: 2rem 1rem;
+    }
+
+    .petrol-line {
+        display: flex;
+        flex-direction: row;
+        border-radius: 1rem;
+        padding: 0.2rem auto;
+    }
+</style>
+
+
+<div class="main">
+
+    <a href="/" class="btn-back">← Назад к списку</a>
+
+    @if (Model.Station != null)
+    {
+        <div id="modify-overlay" class="overlay">
+            <form method="post" action="/Info?handler=MightPetrol">
+                <input type="hidden" name="stationId" value="@Model.Station.Id"/>
+                <div class="petrol-block">
+                    <div class="petrol-line">
+                        <lable>Топливо</lable>
+                            <label for="price">Цена:</label>
+                            <select id="petrolName" name="petrolName">
+                                @{
+                                    foreach(string n in @Model.PetrolNames){
+                                        <option value="@n">@n</option>
+                                    }
+                                }
+                            </select>
+                    </div>
+                    <div class="petrol-line">
+                        <lable>Цена</lable>
+                        <input type="number" name="price"/>
+                    </div>
+                    <div class="petrol-line">
+                        <lable>В наличии</lable>
+                        <input type="radio" name="isExist" value="true"/>
+                    </div>
+                    <div>
+                        <button type="submit">Отправить</button>
+                        <button id="close-overlay">Закрыть</button>
+                    </div>
                 </div>
+            </form>
+        </div>
+        <!-- Блок с информацией о местоположении -->
+        <div class="location-card">
+            <div class="location-info">
+                <h1>@Model.Station.Name</h1>
+                <div class="location-address">
+                    📍 <span>@Model.Station.Address</span>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Station.Address))
+                {
+                    <div style="margin-top: 8px; font-size: 13px; color: #888;">
+                        🗺️ @Model.Station.Address
+                    </div>
+                }
+                <button id="open-overlay">Скорректировать</button>
             </div>
         </div>
-        <div class="column-direction card-height card-width scroll-y">
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
+
+        <!-- Общая оценка заправки -->
+        <div class="station-container">
+            <div class="rating-section">
+                <span class="rating-label">Оценить заправку</span>
+                <div style="display: flex; align-items: center;">
+                    <form method="post" class="rate-form">
+                        <input type="hidden" name="stationId" value="@Model.Station.Id" />
+                        <input type="hidden" name="isStation" value="true" />
+                        <div class="station-rating">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <button type="submit" name="rating" value="@i" class="rate-button">
+                                    <span class="rating-star @(i <= Model.UserRatingStation ? "filled" : "")">★</span>
+                                </button>
+                            }
+                        </div>
+                    </form>
+                    <span class="rating-value">@Model.UserRatingStation.ToString("F1")</span>
                 </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
-                <div class="row-direction container-width">
-                    <span>Заправка</span>
-                    <span>***********</span>
-                </div>
+            </div>
+            <hr/>
+            <div class="current-reting-container">
+                <label style="font-weight: 600; margin-right: 2rem;">Текущая оценка</label>
+                <span>@Model.Station.Rating.ToString("F1")</span>
+            </div>
         </div>
-    </div>
+
+        <!-- Список видов топлива -->
+        <div class="fuels-grid">
+            @foreach (var fuel in Model.Station.Petrols)
+            {
+                <div class="fuel-card">
+                    <div class="fuel-header">
+                        <span class="fuel-name">@fuel.Name</span>
+                        <span class="fuel-price">@fuel.Price.ToString("F2") ₽</span>
+                    </div>
+                    <div class="fuel-meta">
+                        <span>🕒 Обновлено: @{Model.UpdatePetrol(fuel)?.ToString("yyyy-MM-dd");}</span>
+                    </div>
+                    <hr>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-weight: 600; font-size: 14px; color: #1a1a2e;">Оценить топливо</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <form method="post" class="rate-form">
+                                <input type="hidden" name="stationId" value="@Model.Station.Id" />
+                                <input type="hidden" name="fuelId" value="@fuel.Name" />
+                                <input type="hidden" name="isStation" value="false" />
+                                <div class="petrol-rating">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <button type="submit" name="rating" value="@i" class="rate-button">
+                                            <span class="rating-star @(i <= Model.GetUserPetrolRating(fuel) ? "filled" : "")">★</span>
+                                        </button>
+                                    }
+                                </div>
+                            </form>
+                            <span class="small-rating-value">@Model.GetUserPetrolRating(fuel).ToString("F1")</span>
+                        </div>
+                    </div>
+                    <hr/>
+                    <div class="current-reting-container">
+                        <label style="font-weight: 600; margin-right: 2rem;">Текущая оценка</label>
+                        <span>@Model.Station.Rating.ToString("F1")</span>
+                    </div>
+                </div>
+            }
+        </div>
+        <div id="comment-block">
+            <label>Оставить коментарий</label>
+            <div id="comment-text-block">
+                <div id="comment-slider">
+                    @{
+                        foreach(var comment in @Model.Comments!){
+                            <div>@comment.Text</div>
+                        }
+                    }
+                </div>
+                <span></span>
+            </div>
+            <form method="post" action="/Info?handler=Comment">
+                <div id="input-block">
+                    <input type="hidden" name="stationId" value="@Model.Station.Id" />
+                    <input type="text" name="msg"/>
+                    <button type="submit">Отправить</button>
+                </div>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div style="text-align: center; padding: 40px; color: #888;">
+            <p>Заправка не найдена</p>
+            <a href="/stations" class="btn-back" style="margin-top: 16px;">← Вернуться к списку</a>
+        </div>
+    }
 </div>
+
+<script>
+    let openBtn = document.getElementById("open-overlay");
+    let closeBtn = document.getElementById("close-overlay");
+    let overlay = document.getElementById("modify-overlay");
+    openBtn.onclick = () => overlay.classList.add('active');
+    closeBtn.onclick = () => overlay.classList.remove('active');
+</script>
